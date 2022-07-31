@@ -1,13 +1,13 @@
-#include "ANSI_internal.h"
+#include "stream.h"
+#include "format.h"
 #include <stdbool.h>
 
 
-struct info_stream
+struct info_internal_stream
 {
         FILE *f;
-        const char *prefix_format;
-        const char *format;
         bool ANSI_support;
-        struct info_internal_ANSI current;
+        info_Formats format;
+};
 
-
+bool info_internal_stream_output(info_stream stream, struct info_internal_Msg *message);
