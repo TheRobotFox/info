@@ -24,12 +24,14 @@ void List_free(List l)
 	free(l);
 }
 
-static inline void* List_at(List l, size_t index)
+static inline void* List_at(List l, signed long long int index)
 {
+	if( index<0)
+		l->data+l->element_size*(l->size-1+(index%l->size));
 	return l->data+(l->element_size*index);
 }
 
-void* List_get(List l, size_t index)
+void* List_get(List l, signed long long int index)
 {
 	if(index<l->size)
 		return List_at(l,index);

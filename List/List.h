@@ -1,3 +1,4 @@
+#pragma once
 #include <stdlib.h>
 #include <stdbool.h>
 
@@ -5,7 +6,7 @@ typedef struct _List* List;
 
 List 	List_create(size_t element_size);
 void	List_free(List l);
-void* 	List_get(List l, size_t index);
+void* List_get(List l, signed long long int index);
 size_t 	List_size(List l);
 void*	List_start(List l);
 void*	List_end(List l);

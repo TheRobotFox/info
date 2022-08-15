@@ -1,3 +1,4 @@
+#pragma once
 #include "List/List.h"
 #include "ANSI.h"
 #include <stdarg.h>
@@ -27,7 +28,7 @@ enum INFO_TYPE
 #undef INFO_GENERATE_ENUM
 
 
-static struct info_ANSI info_ANSI[] = {
+static ANSI info_ANSI[] = {
 	// set defaults
 	INFO_FOREACH_FUNC(INFO_GENERATE_ANSI)
 
@@ -50,17 +51,19 @@ void info_Msg_origin(struct info_Origin origin);
 void info_Msg_type(enum INFO_TYPE type);
 void info_hold(void);
 void info_release(void);
+void info_color(ANSI ansi);
 
 
 // MARCOS
-#define PRINT(...)
-#define INFO_INTERNAL_MSG_SETUP(type) {info_Msg_origin((struct Origin){__FILE__, __LINE__, __FUNCTION__}); info_Msg_type(type);}
+#define PRINT(...) info_printf(__VA_ARGS__);
+#define INFO_INTERNAL_MSG_SETUP(type) {info_Msg_origin((struct info_Origin){__FILE__, __LINE__, __FUNCTION__}); info_Msg_type(type);}
 #define INFO_INTERNAL_MSG(type, ...) {INFO_INTERNAL_MSG_SETUP(type); PRINT(__VA_ARGS__)}
-#define INFO(...) MSG(INFO, __VA_ARGS__)
-#define ERROR(...) MSG(ERROR, __VA_ARGS__)
-#define FATAL(...) MSG(FATAL, __VA_ARGS__)
-#define SUCCESS(...) MSG(SUCCESS, __VA_ARGS__)
+#define INFO(...) INFO_INTERNAL_MSG(INFO, __VA_ARGS__)
+#define ERROR(...) INFO_INTERNAL_MSG(ERROR, __VA_ARGS__)
+#define FATAL(...) INFO_INTERNAL_MSG(FATAL, __VA_ARGS__)
+#define SUCCESS(...) INFO_INTERNAL_MSG(SUCCESS, __VA_ARGS__)
 #define SEG_BEGIN(name) {MSG_SETUP(SEG); info_seg_begin(name)}
 #define HOLD info_hold();
 #define RELEASE info_release();
+#define COLOR(r,g,b) {info_color(INFO_ANSI_normal_color(r,g,b));}
 

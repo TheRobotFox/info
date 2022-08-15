@@ -1,5 +1,8 @@
-#include "stream.h"
+#pragma once
+#include "info_internal.h"
 #include "format.h"
+#include "stream.h"
+#include <stdio.h>
 #include <stdbool.h>
 
 
@@ -10,4 +13,4 @@ struct info_internal_stream
         info_Formats format;
 };
 
-bool info_internal_stream_output(info_stream stream, struct info_internal_Msg *message);
+bool info_internal_stream_output(info_stream stream, info_Msg message);

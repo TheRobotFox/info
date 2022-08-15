@@ -1,4 +1,6 @@
+#pragma once
 #include "info.h"
+#include "ANSI.h"
 
 //DRAFT 1
 // MESSAGE INFO
@@ -24,8 +26,13 @@
 // %% %
 
 // TODO:
-// %[0-9]x custom function
 // %[0-9]c use specific contetn stream
+// INFO Tag func
+// SUBSTRINGS
+// ANSI impl
+// Refactor format solve
+// test run O.o
+// usw
 
 
 
@@ -36,8 +43,8 @@
 // %[expr args]...<func_name>
 // %{name}( -> start substring name
 // %) end substring
-#define INFO_FORMAT_FORMAT_DEFAULT "[%t][%i]%d %f: %c"
-#define INFO_FORMAT_NEWLINE_DEFAULT "\n"
+#define INFO_FORMAT_FORMAT_DEFAULT "%([%t][%i] %f: %)%<content>"
+#define INFO_FORMAT_NEWLINE_DEFAULT "\n%w"
 
 struct info_format
 {
@@ -45,8 +52,9 @@ struct info_format
         const char *newline;
 };
 
-char *indent "\t";
-struct info_format info_foramt_default = { INFO_FORMAT_FORMAT_DEFAULT, INFO_FORMAT_NEWLINE_DEFAULT, true};
+static char *indent = "\t";
+static struct info_format info_format_default = { INFO_FORMAT_FORMAT_DEFAULT, INFO_FORMAT_NEWLINE_DEFAULT};
+static ANSI ansi_prefix = {1};
 
 typedef struct info_format info_Formats[(enum INFO_TYPE)COUNT];
 

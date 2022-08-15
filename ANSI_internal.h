@@ -1,2 +1,5 @@
+#include <stdio.h>
+#include "buffer.h"
 #include "ANSI.h"
-void info_internal_ANSI_switch(const struct info_ANSI *ANSI, List drawcall_list);
+void info_internal_ANSI_switch(info_buffer out, ANSI new);
+void info_internal_ANSI_stream_reset(FILE* f);

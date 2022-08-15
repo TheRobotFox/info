@@ -1,3 +1,4 @@
+#pragma once
 #include <stddef.h>
 #include <stdbool.h>
 #include <stdarg.h>
@@ -6,7 +7,7 @@ typedef struct info_internal_buffer *info_buffer;
 
 info_buffer info_internal_buffer_create(size_t size);
 bool info_internal_buffer_append(info_buffer buf, const char *str, size_t length);
-bool info_internal_buffer_cat(info_buffer buffer, info_buffer co);
+bool info_internal_buffer_consume(info_buffer buffer, info_buffer co);
 bool info_internal_buffer_vprintf(info_buffer buffer, const char *format, va_list args);
 bool info_internal_buffer_printf(info_buffer buffer, const char *format, ...);
 bool info_internal_buffer_reserve(info_buffer buf, size_t size);
