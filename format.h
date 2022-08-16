@@ -45,7 +45,7 @@
 // %{name}( -> start substring name
 // %) end substring
 #define INFO_FORMAT_FORMAT_DEFAULT "[%t][%i] %d%f: %<content>"
-#define INFO_FORMAT_NEWLINE_DEFAULT "\n%{%l}w%d"
+#define INFO_FORMAT_NEWLINE_DEFAULT "\n%{%p}w%d"
 
 struct info_format
 {
