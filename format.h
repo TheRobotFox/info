@@ -57,5 +57,5 @@ static char *indent = "\t";
 static struct info_format info_format_default = { INFO_FORMAT_FORMAT_DEFAULT, INFO_FORMAT_NEWLINE_DEFAULT};
 static ANSI ansi_prefix = {1};
 
-typedef struct info_format info_Formats[(enum INFO_TYPE)COUNT];
+typedef struct info_format info_Formats[(enum INFO_TYPE)INFO_COUNT];
 
