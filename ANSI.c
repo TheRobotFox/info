@@ -15,15 +15,18 @@ static bool info_internal_ANSI_color_cmp(struct info_ANSI_color a, struct info_A
         return a.r==b.r && a.g==b.g && a.b==b.b;
 }
 
+ANSI current = {1};
+ANSI normal = {1};
 void info_internal_ANSI_stream_reset(FILE *f)
 {
         fwrite("\033[0m", 1, 4, f);
+        current=normal;
 }
-ANSI current = {1};
 void info_internal_ANSI_switch(info_buffer out, ANSI new)
 {
-        if(new.normal&~current.normal){
-                info_internal_buffer_printf(out, "\033[0m");
+        if(new.normal){
+                //if(!current.normal)
+                        info_internal_buffer_printf(out, "\033[0m");
                 return;
         }
         if(!info_internal_ANSI_color_cmp(new.forground, current.forground))

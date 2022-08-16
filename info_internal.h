@@ -24,6 +24,7 @@ struct info_internal_Msg
         enum INFO_TYPE type;
         struct info_Origin origin;
         List drawcall_list;
+        size_t indentation;
         ANSI current;
         ANSI start;
 };

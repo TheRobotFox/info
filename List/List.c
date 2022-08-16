@@ -1,5 +1,6 @@
 #include "List.h"
 #include <string.h>
+#include <stdio.h>
 
 struct _List{
 	char *data;
@@ -26,8 +27,9 @@ void List_free(List l)
 
 static inline void* List_at(List l, signed long long int index)
 {
-	if( index<0)
-		l->data+l->element_size*(l->size-1+(index%l->size));
+	if( index<0){
+		index = (l->size-1+((index+1)%l->size));
+	}
 	return l->data+(l->element_size*index);
 }
 
@@ -35,6 +37,8 @@ void* List_get(List l, signed long long int index)
 {
 	if(index<l->size)
 		return List_at(l,index);
+	if(l->size && index<0)
+		return List_at(l, index);
 	return NULL;
 }
 

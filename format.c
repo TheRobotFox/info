@@ -58,23 +58,23 @@ static bool info_internal_format_function_execute(struct info_format_function *f
 static bool info_internal_format_arg_read(List args, enum info_format_function_arg_type type, const char *str, size_t len)
 {
         info_buffer tmp = info_internal_buffer_create(len);
-        if(info_internal_format_str_eval(str, len,tmp, false))
+        if(info_internal_format_str_eval(str, len, false, tmp))
                 return true;
         struct info_format_function_arg arg={0};
         arg.type=type;
         switch(type)
         {
+                case BUFFER:
+                        arg.buf=tmp;
+                        break;
                 case INT:
                         arg.num=strtol(info_internal_buffer_str(tmp),NULL,10);
-                        break;
-                case STRING:
-                        arg.str=info_internal_buffer_str(tmp);
+                        info_internal_buffer_free(tmp);
                         break;
                 default:
                         info_internal_buffer_free(tmp);
                         return true;
         }
-        info_internal_buffer_free(tmp);
         return !List_append(args, &arg);
 }
 
@@ -143,7 +143,7 @@ start:
                         }
                         ret+=end+1;
 
-                        if(info_internal_format_arg_read(args, STRING, ++str, end-1)){
+                        if(info_internal_format_arg_read(args, BUFFER, ++str, end-1)){
                                 ret=-1;
                                 break;
                         }
@@ -162,12 +162,19 @@ start:
                         ret= -1;
         }
 
+        for(struct info_format_function_arg *start=List_start(args),
+                                            *end = List_end(args);
+                                            start!=end; start++)
+        {
+                if(start->type==BUFFER)
+                        info_internal_buffer_free(start->buf);
+        }
         List_free(args);
 
         return ret;
 }
 
-struct formatting_info formatting_info;
+struct formatting_info formatting_info={0};
 
 bool info_internal_format_str_eval(const char *format, size_t len, bool ANSI, info_buffer out)
 {
@@ -203,19 +210,30 @@ bool info_internal_format_str_eval(const char *format, size_t len, bool ANSI, in
 
 bool info_format_Msg_format(info_Msg msg, info_Formats format, bool ANSI, info_buffer out)
 {
-        const char *format_str = format[msg->type].format;
+
+        const char *newline_str;
+        const char *format_str;
+
+        if(msg->type==ZERO){
+                format_str = "%{%p}w%d%c";
+                newline_str = "\n%p%d";
+        } else{
+                 newline_str = format[msg->type].newline;
+                 format_str = format[msg->type].format;
+        }
+
+        size_t newline_str_len = strlen(newline_str);
+
         info_buffer tmp = info_internal_buffer_create(strlen(format_str));
 
         formatting_info.substrings = List_create(sizeof(struct info_internal_format_substring));
         formatting_info.current = msg;
         formatting_info.buffer = tmp;
-        info_internal_format_str_eval(format_str, strlen(format_str), ANSI, tmp);
 
-        size_t length=info_internal_buffer_tell(tmp);
+        info_internal_format_str_eval(format_str, strlen(format_str), ANSI, tmp);
         const char *tmp_str = info_internal_buffer_str(tmp);
 
-        const char *newline_str = format[msg->type].newline;
-        size_t newline_str_len = strlen(newline_str);
+        size_t length=info_internal_buffer_tell(tmp);
 
         int start = 0, next;
         while((next=util_string_next('\n', tmp_str, length, start))>0)

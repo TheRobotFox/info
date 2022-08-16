@@ -4,22 +4,33 @@
 typedef struct info_format_function_arg* Arg;
 #define RET_NOTHING return List_create(sizeof(struct info_internal_drawcall));
 
+char last_prefix_buff[512]={0};
+size_t last_prefix_buff_length=0;
+
+static bool util_strcmp(const char *a, const char *b, size_t len)
+{
+        for(size_t i=0; i<len; i++)
+                if(a!=b)
+                        return false;
+        return true;
+}
+
 static List timestamp(List args)
 {
         const char *fmt = "%d:%.2d:%.2d";
         // check args
-        if(List_size(args)>1){
+        if(List_size(args)!=0){
                 INTERNAL_ERROR("got %d args but take at most 1", List_size(args))
                 return NULL;
         }
 
         if(List_size(args)==1){
                 Arg arg = List_get(args,0);
-                if(arg->type!=STRING){
-                        INTERNAL_ERROR("wrong arg type! Need STRING arg")
+                if(arg->type!=BUFFER){
+                        INTERNAL_ERROR("wrong arg type! Need BUFFER arg")
                         return NULL;
                 }
-                fmt = arg->str;
+                fmt = info_internal_buffer_str(arg->buf);
         }
 
         List drawcall_list = List_create(sizeof( struct info_internal_drawcall));
@@ -48,11 +59,11 @@ static List substring_start(List args)
 
         if(List_size(args)==1){
                 Arg arg = List_get(args,0);
-                if(arg->type!=STRING){
-                        INTERNAL_ERROR("wrong arg type! Need STRING arg")
+                if(arg->type!=BUFFER){
+                        INTERNAL_ERROR("wrong arg type! Need BUFFER arg")
                         return NULL;
                 }
-                substring.name=arg->str;
+                substring.name=info_internal_buffer_str(arg->buf);
         }
 
 
@@ -111,6 +122,7 @@ static List info_content(List args)
                 }
                 stream = arg->num;
         }
+
         List elements = formatting_info.current->drawcall_list,
              out = List_create(sizeof(struct info_internal_drawcall));
 
@@ -143,49 +155,28 @@ List info_funcname(List args)
 
 static List info_whitespaces(List args)
 {
-        int index=-1;
-        if(!List_size(formatting_info.substrings)){
-                INTERNAL_ERROR("No Subtrings where found")
+
+        if(List_size(args)!=1) {
+                INTERNAL_ERROR("takes 1 argument, but got %d", List_size(args))
                 return NULL;
         }
-        // check args
-        if(List_size(args)>1){
-                INTERNAL_ERROR("got %d args but take at most 1", List_size(args))
+        Arg arg = List_get(args, 0);
+
+        if(arg->type!=BUFFER){
+                INTERNAL_ERROR("argument has to be string")
                 return NULL;
         }
-        if(List_size(args)==1){
-                Arg arg = List_get(args,0);
-                if(arg->type==INT){
-                        index=arg->num;
-                        if(index>List_size(formatting_info.substrings)){
-                                INTERNAL_ERROR("substring index %d out of range", List_size(formatting_info.substrings))
-                                return NULL;
-                        }
-                }else if(arg->type==STRING){
-                       for(int i=0; i<List_size(args); i++)
-                       {
-                               struct info_internal_format_substring *sstr = List_get(formatting_info.substrings, i);
-                               if(!strcmp(sstr->name, arg->str)){
-                                       index=i;
-                                       goto fin;
-                               }
-                       }
-                       INTERNAL_ERROR("substring \"%s\" could not be foud!", arg->str)
-                        return NULL;
-                }
-        }
-fin:
-        struct info_internal_format_substring *sstr = List_get(formatting_info.substrings, index);
+
         List out = List_create(sizeof(struct info_internal_drawcall));
 
-        size_t sstrlen =(size_t)(sstr->offset_end-sstr->offset_start);
+        size_t sstrlen =info_internal_buffer_tell(arg->buf);
         struct info_internal_drawcall *d = List_append(out, NULL);
         d->ansi=formatting_info.current->start;
         d->content_stream=TEXT;
         d->content=info_internal_buffer_create(sstrlen);
 
         char *out_str = info_internal_buffer_str(d->content);
-        const char *in_str = info_internal_buffer_str(formatting_info.buffer)+sstr->offset_start;
+        const char *in_str = info_internal_buffer_str(arg->buf);
         bool skip=false;
         int pos = 0;
         for(int i=0; i<sstrlen; i++)
@@ -206,6 +197,100 @@ fin:
         return out;
 }
 
+static List info_indentation(List args)
+{
+        if(List_size(args)){
+                INTERNAL_ERROR("dont take any args")
+                return NULL;
+        }
+
+        // save prefix
+        const char * prefix_str = info_internal_buffer_str(formatting_info.buffer);
+        size_t lenght = info_internal_buffer_tell(formatting_info.buffer);
+        lenght = lenght<512 ? lenght : 512;
+        last_prefix_buff_length=lenght;
+        for(int i=0; i<lenght; i++)
+                last_prefix_buff[i]=prefix_str[i];
+
+        unsigned short indentation = formatting_info.current->indentation;
+        List out = List_create(sizeof(struct info_internal_drawcall));
+        struct info_internal_drawcall *d = List_append(out, NULL);
+        d->ansi=formatting_info.current->start;
+        d->content_stream=TEXT;
+        d->content=info_internal_buffer_create(indentation);
+
+        char *str = info_internal_buffer_str(d->content);
+        for(unsigned short i=0; i<indentation; i++)
+                str[i]='\t';
+        info_internal_buffer_seek(d->content, indentation);
+        return out;
+}
+
+static List info_substring_get(List args)
+{
+        int index=-1;
+        if(!List_size(formatting_info.substrings)){
+                INTERNAL_ERROR("No Subtrings where found")
+                return NULL;
+        }
+        // check args
+        if(List_size(args)>1){
+                INTERNAL_ERROR("got %d args but take at most 1", List_size(args))
+                return NULL;
+        }
+        if(List_size(args)==1){
+                Arg arg = List_get(args,0);
+                if(arg->type==INT){
+                        index=arg->num;
+                        if(index>List_size(formatting_info.substrings)){
+                                INTERNAL_ERROR("substring index %d out of range", List_size(formatting_info.substrings))
+                                return NULL;
+                        }
+                }else if(arg->type==BUFFER){
+                       for(int i=0; i<List_size(args); i++)
+                       {
+                               struct info_internal_format_substring *sstr = List_get(formatting_info.substrings, i);
+                               if(!strcmp(sstr->name, info_internal_buffer_str(arg->buf))){
+                                       index=i;
+                                       goto fin;
+                               }
+                       }
+                       INTERNAL_ERROR("substring \"%s\" could not be foud!", info_internal_buffer_str(arg->buf))
+                        return NULL;
+                }
+        }
+fin:
+        struct info_internal_format_substring *sstr = List_get(formatting_info.substrings, index);
+        List out = List_create(sizeof(struct info_internal_drawcall));
+
+        size_t lenght = sstr->offset_end-sstr->offset_start;
+        struct info_internal_drawcall *d = List_append(out, NULL);
+        d->ansi=formatting_info.current->start;
+        d->content_stream=TEXT;
+        d->content=info_internal_buffer_create(lenght);
+        char *str_start = info_internal_buffer_str(formatting_info.buffer);
+        info_internal_buffer_append(d->content, str_start+sstr->offset_start, lenght);
+
+        return out;
+}
+
+List info_last_prefix(List args)
+{
+        if(List_size(args)){
+                INTERNAL_ERROR("takes no arguments!")
+                return NULL;
+        }
+
+        List out = List_create(sizeof(struct info_internal_drawcall));
+
+        struct info_internal_drawcall *d = List_append(out, NULL);
+        d->ansi=formatting_info.current->start;
+        d->content_stream=TEXT;
+        d->content=info_internal_buffer_create(last_prefix_buff_length);
+        info_internal_buffer_append(d->content, last_prefix_buff, last_prefix_buff_length);
+
+        return out;
+}
 
 struct info_format_function functions[] = {
         {"timestamp", 't', timestamp},
@@ -215,6 +300,9 @@ struct info_format_function functions[] = {
         {"content", 'c', info_content},
         {"function", 'f', info_funcname},
         {"whitespaces", 'w', info_whitespaces},
+        {"indent", 'd', info_indentation},
+        {"substring", 's', info_substring_get},
+        {"last_prefix", 'p', info_last_prefix},
 
 
 };

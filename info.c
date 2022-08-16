@@ -1,6 +1,7 @@
 #include "info_internal.h"
 #include "stream_internal.h"
 #include <stddef.h>
+#include <time.h>
 
 #define INFO_GENERATE_STRING(STRING) [STRING] = #STRING,
 
@@ -9,9 +10,72 @@ const char *info_internal_type_ids[] = {
 	[FATAL] = "FATAL ERROR"
 };
 
-struct info_internal_Msg message = { ZERO, {0}, NULL, {1}};
-bool hold=false, col_unset, init=true;
+struct info_internal_Msg message = { ZERO, {0}, NULL, 0, {1}};
+bool hold=false, holding=false, col_unset, init=true;
 struct info_internal_stream output = {0};
+extern size_t last_prefix_buff_length;
+
+#define MAX_SEG_NEST 128
+struct Segment
+{
+	clock_t start;
+	const char *name;
+};
+
+struct Segment seg_data[MAX_SEG_NEST];
+size_t seg_index = 0;
+
+void info_seg_begin(const char *name)
+{
+	HOLD
+	PRINT("Segment ");
+
+	if(name)
+		PRINT("'%s' ", name);
+	PRINT("started!");
+
+	if(seg_index>=MAX_SEG_NEST){
+		PRINT("Cannot record time, MAX_SEG_NEST (%d) reached", MAX_SEG_NEST)
+		goto end;
+	}
+
+	seg_data[seg_index].start=clock();
+	seg_data[seg_index].name=name;
+
+	end:
+	RELEASE
+	seg_index++;
+}
+
+void info_seg_end(const char *func_name)
+{
+	seg_index--;
+
+	HOLD
+	PRINT("Segment ");
+	if(seg_index<MAX_SEG_NEST){
+		if(seg_data[seg_index].name)
+			PRINT("'%s' ", seg_data[seg_index].name);
+	}
+	PRINT("has ended");
+	if(seg_index<MAX_SEG_NEST)
+		PRINT(" %gms", (double)(clock()-seg_data[seg_index].start)/CLOCKS_PER_SEC*1000);
+
+	PRINT("!")
+	RELEASE
+}
+
+void info_indent(int n)
+{
+	if(!n)
+		message.indentation=0;
+	message.indentation+=n;
+}
+
+void info_reset()
+{
+	last_prefix_buff_length=0;
+}
 
 void info_Msg_origin(struct info_Origin origin)
 {
@@ -25,25 +89,30 @@ void info_Msg_type(enum INFO_TYPE type)
 
 void info_hold(void)
 {
+	if(holding)
+		info_release();
 	hold=true;
 }
 
 void info_release(void)
 {
-	if(message.drawcall_list){
-		info_internal_stream_output(&output, &message);
-		for(struct info_internal_drawcall* start = List_start(message.drawcall_list),
-																		 * end = List_end(message.drawcall_list);
-																		 start!=end; start++)
-		{
-			info_internal_buffer_free(start->content);
-		}
-		List_free(message.drawcall_list);
-		message.drawcall_list=NULL;
+	if(!holding)
+		return;
+
+	info_internal_stream_output(&output, &message);
+	for(struct info_internal_drawcall* start = List_start(message.drawcall_list),
+																	 * end = List_end(message.drawcall_list);
+																	 start!=end; start++)
+	{
+		info_internal_buffer_free(start->content);
 	}
+	List_free(message.drawcall_list);
+	message.drawcall_list=NULL;
 	message.current=(ANSI){1};
+	message.type=ZERO;
 	col_unset=true;
 	hold=false;
+	holding=false;
 }
 
 void info_color(ANSI ansi)
@@ -74,6 +143,7 @@ void info_printf(const char *format, ...)
 {
 	if(init)
 	{
+		holding=true;
 		output.f=stdout;
 		output.ANSI_support=true;
 		for(int i=ZERO; i<COUNT; i++)

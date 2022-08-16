@@ -40,7 +40,7 @@ bool info_internal_buffer_vprintf(info_buffer buffer, const char *format, va_lis
         va_list arg_tmp;
         va_copy(arg_tmp, args);
 
-        int length = vsnprintf(NULL ,0, format, arg_tmp);
+        int length = vsnprintf(buffer->str+buffer->cursor ,0, format, arg_tmp);
         va_end(arg_tmp);
         if(length<0)
                 INTERNAL("vsnprintf error: %d", length)
@@ -86,7 +86,10 @@ bool info_internal_buffer_seek(info_buffer buffer, size_t pos)
 }
 
 
-char *info_internal_buffer_str(info_buffer buffer){
+char *info_internal_buffer_str(info_buffer buffer)
+{
+        info_internal_buffer_reserve(buffer, buffer->cursor+1);
+        buffer->str[buffer->cursor]=0;
         return buffer->str;
 }
 void info_internal_buffer_free(info_buffer buffer)

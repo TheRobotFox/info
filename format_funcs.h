@@ -12,7 +12,7 @@ struct info_format_function
 
 enum info_format_function_arg_type
 {
-        STRING,
+        BUFFER,
         INT
 };
 
@@ -20,7 +20,7 @@ struct info_format_function_arg
 {
         enum info_format_function_arg_type type;
         union {
-                const char *str;
+                info_buffer buf;
                 int num;
         };
 };

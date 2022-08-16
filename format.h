@@ -10,6 +10,7 @@
 // %F Origin file
 // %l line number
 // %d put draw calls indentation
+// %o last content_offset
 //
 // %c print content stream 0
 //
@@ -43,8 +44,8 @@
 // %[expr args]...<func_name>
 // %{name}( -> start substring name
 // %) end substring
-#define INFO_FORMAT_FORMAT_DEFAULT "%([%t][%i] %f: %)%<content>"
-#define INFO_FORMAT_NEWLINE_DEFAULT "\n%w"
+#define INFO_FORMAT_FORMAT_DEFAULT "[%t][%i] %d%f: %<content>"
+#define INFO_FORMAT_NEWLINE_DEFAULT "\n%{%s}w"
 
 struct info_format
 {
