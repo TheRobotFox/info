@@ -146,7 +146,7 @@ void info_printf(const char *format, ...)
 		holding=true;
 		output.f=stdout;
 		output.ANSI_support=true;
-		for(int i=ZERO; i<COUNT; i++)
+		for(int i=ZERO; i<INFO_COUNT; i++)
 			output.format[i]=info_format_default;
 	}
 

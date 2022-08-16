@@ -3,7 +3,7 @@
 
 //static void info_internal_stream_formats_set(info_stream stream)
 //{
-//        for(int i=0; i<(enum INFO_TYPE)COUNT; i++)
+//        for(int i=0; i<(enum INFO_TYPE)INFO_COUNT; i++)
 //        {
 //                if(!stream->format[i])
 //                        stream->format[i]=info_foramt_default;

@@ -22,7 +22,7 @@ enum INFO_TYPE
 	FATAL,
 
 
-	COUNT
+	INFO_COUNT
 };
 
 #undef INFO_GENERATE_ENUM
