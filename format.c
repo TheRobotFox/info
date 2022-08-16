@@ -209,8 +209,10 @@ bool info_format_Msg_format(info_Msg msg, info_Formats format, bool ANSI, info_b
         const char *format_str;
 
         if(msg->type==ZERO){
-                format_str = "%{%p}w%d%c";
-                newline_str = "\n%p%d";
+                //format_str = "%{%p}w%d%c";
+                //newline_str = "\n%p%d";
+                format_str = "%c";
+                newline_str = "\n";
         } else{
                  newline_str = format[msg->type].newline;
                  format_str = format[msg->type].format;
