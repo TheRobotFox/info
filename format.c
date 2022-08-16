@@ -68,7 +68,7 @@ static bool info_internal_format_arg_read(List args, enum info_format_function_a
                         arg.buf=tmp;
                         break;
                 case INT:
-                        arg.num=strtol(info_internal_buffer_str(tmp),NULL,10);
+                        arg.num=strtol(info_internal_buffer_str(tmp), NULL, 10);
                         info_internal_buffer_free(tmp);
                         break;
                 default:
@@ -94,7 +94,7 @@ start:
         case '<':       // func by name
                 {
                         // get string end
-                        int end = util_string_next('>', str, len, 0);
+                        int end = util_string_next('>', str, len, ret);
                         if(end==-1){
                                 INTERNAL_ERROR("Expected '>'!")
                                 // indicate error
@@ -116,7 +116,7 @@ start:
 
         case '[':       // eval args
                 {
-                        int end = util_string_next(']', str, len, 0);
+                        int end = util_string_next(']', str, len, ret);
                         if(end==-1){
                                 INTERNAL_ERROR("Expected ']'!")
                                 // indicate error
@@ -134,7 +134,7 @@ start:
                 } break;
         case '{':
                 {
-                        int end = util_string_next('}', str, len, 0);
+                        int end = util_string_next('}', str, len, ret);
                         if(end==-1){
                                 INTERNAL_ERROR("Expected '}'!")
                                 // indicate error
@@ -180,18 +180,12 @@ bool info_internal_format_str_eval(const char *format, size_t len, bool ANSI, in
 {
 
         size_t i=0, res;
-        size_t pos = 0;
         while((res=util_string_next('%', format, len, i))!=-1)
         {
                 if(ANSI){
-                        pos+=info_internal_buffer_tell(out);
                         info_internal_ANSI_switch(out, ansi_prefix);
-                        pos-=info_internal_buffer_tell(out);
-                }else{
-                        pos+=info_internal_buffer_tell(out);
 
                 }
-                formatting_info.offset=pos;
 
                 info_internal_buffer_append(out, format+i, res);
                 i+=res;
@@ -199,11 +193,11 @@ bool info_internal_format_str_eval(const char *format, size_t len, bool ANSI, in
                         INTERNAL("trailing %%")
                 i++;
 
-
                 if((res=info_internal_format_solve(format+i,len-i, out, ANSI))<0)
                         ;//INTERNAL_ERROR("parsing fomrat string failed at %d", i)
                 i+=res;
         }
+        info_internal_buffer_append(out, format+i, len-i);
 
         return false;
 }
@@ -229,6 +223,7 @@ bool info_format_Msg_format(info_Msg msg, info_Formats format, bool ANSI, info_b
         formatting_info.substrings = List_create(sizeof(struct info_internal_format_substring));
         formatting_info.current = msg;
         formatting_info.buffer = tmp;
+        formatting_info.start_offset=0;
 
         info_internal_format_str_eval(format_str, strlen(format_str), ANSI, tmp);
         const char *tmp_str = info_internal_buffer_str(tmp);
@@ -236,8 +231,11 @@ bool info_format_Msg_format(info_Msg msg, info_Formats format, bool ANSI, info_b
         size_t length=info_internal_buffer_tell(tmp);
 
         int start = 0, next;
+        formatting_info.buffer=out;
         while((next=util_string_next('\n', tmp_str, length, start))>0)
         {
+                if(start+next==length-1)
+                        break;
                 info_internal_buffer_append(out, tmp_str+start, next);
                 if(info_internal_format_str_eval(newline_str, newline_str_len, ANSI, out))
                 {
@@ -245,7 +243,7 @@ bool info_format_Msg_format(info_Msg msg, info_Formats format, bool ANSI, info_b
                         List_free(formatting_info.substrings);
                         return true;
                 }
-                start=next+1;
+                start+=next+1;
         }
         info_internal_buffer_append(out, tmp_str+start, length-start);
 

@@ -15,6 +15,11 @@ static bool util_strcmp(const char *a, const char *b, size_t len)
         return true;
 }
 
+static size_t util_offset_get()
+{
+        return info_internal_buffer_tell(formatting_info.buffer);
+}
+
 static List timestamp(List args)
 {
         const char *fmt = "%d:%.2d:%.2d";
@@ -199,18 +204,30 @@ static List info_whitespaces(List args)
 
 static List info_indentation(List args)
 {
-        if(List_size(args)){
-                INTERNAL_ERROR("dont take any args")
+        if(List_size(args)>1){
+                INTERNAL_ERROR("take at most one arg, but got %d!", List_size(args))
                 return NULL;
         }
+        bool save = false;
+        if(List_size(args)==1){
+                Arg arg = List_get(args, 0);
+                if(arg->type!=INT){
+                        INTERNAL_ERROR("INT is required")
+                        return NULL;
+                }
+                save=arg->num==1;
+        }
+
 
         // save prefix
-        const char * prefix_str = info_internal_buffer_str(formatting_info.buffer);
-        size_t lenght = info_internal_buffer_tell(formatting_info.buffer);
-        lenght = lenght<512 ? lenght : 512;
-        last_prefix_buff_length=lenght;
-        for(int i=0; i<lenght; i++)
-                last_prefix_buff[i]=prefix_str[i];
+        if(save){
+                const char * prefix_str = info_internal_buffer_str(formatting_info.buffer);
+                size_t lenght = util_offset_get();
+                lenght = lenght<512 ? lenght : 512;
+                last_prefix_buff_length=lenght;
+                for(int i=0; i<lenght; i++)
+                        last_prefix_buff[i]=prefix_str[i];
+        }
 
         unsigned short indentation = formatting_info.current->indentation;
         List out = List_create(sizeof(struct info_internal_drawcall));

@@ -37,7 +37,7 @@ struct formatting_info
         info_Msg current;
         info_buffer buffer;
         //size_t line;
-        size_t offset;
+        size_t start_offset;
         List substrings;
 };
 
