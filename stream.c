@@ -20,6 +20,14 @@ bool info_internal_stream_output(info_stream stream, info_Msg message)
         format = info_format_select(format, stream->formats[message->type]);
         if(info_format_Msg_format(message, format, stream->ANSI_support, buffer))
                 INTERNAL("Could not eval message!")
+
+
+
+        info_char *str = info_internal_buffer_str(buffer);
+        size_t len = info_internal_buffer_tell(buffer);
+        if(str[len-1]==INFO_STR('\n'))
+                info_internal_buffer_grow(buffer, len-1);
+
         FPUTS(info_internal_buffer_str(buffer), stdout);
         FPUTC(INFO_STR('\n'), stream->f);
         if(stream->ANSI_support)

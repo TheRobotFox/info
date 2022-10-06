@@ -308,12 +308,13 @@ bool info_format_Msg_format(info_Msg msg, struct info_format format, bool ANSI, 
 
         info_internal_format_str_eval(format_str, STRLEN(format_str), ANSI, initial);
 
+        info_format_replace(initial, INFO_STR('\n'), newline_str, STRLEN(newline_str), true, ANSI, out);
+
         info_buffer tmp = info_internal_buffer_create(info_internal_buffer_tell(initial));
 
-        info_format_replace(initial, INFO_STR('\t'), indent, STRLEN(indent), false, ANSI, tmp);
         info_internal_buffer_free(initial);
 
-        info_format_replace(tmp, INFO_STR('\n'), newline_str, STRLEN(newline_str), true, ANSI, out);
+        info_format_replace(tmp, INFO_STR('\t'), indent, STRLEN(indent), false, ANSI, tmp);
         info_internal_buffer_free(tmp);
 
         info_format_substrings_clear(formatting_info.substrings);

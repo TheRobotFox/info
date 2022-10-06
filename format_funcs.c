@@ -356,11 +356,11 @@ static List info_structured(List args)
         }
         size_t indentation = formatting_info.current->indentation;
 
+        ANSI ansi = formatting_info.current->start;
         if(last_indentation==indentation)
-                RET_NOTHING;
+                return util_print_n(INFO_STR('\t'), indentation, ansi);
 
         List drawcall_list = List_create(sizeof(struct info_internal_drawcall));
-        ANSI ansi = formatting_info.current->start;
 
         if(indentation>last_indentation){
                 List tmp = util_print_n(INFO_STR('\t'), indentation-1, ansi);
@@ -368,7 +368,10 @@ static List info_structured(List args)
                 info_internal_drawcall_printf(drawcall_list, TEXT, ansi, INFO_STR("{\n"));
                 List_free(tmp);
         }else{
+                List tmp = util_print_n(INFO_STR('\t'), indentation, ansi);
+                List_concat(drawcall_list, tmp);
                 info_internal_drawcall_printf(drawcall_list, TEXT, formatting_info.current->start, INFO_STR("}\n"));
+                List_free(tmp);
 
         }
         last_indentation=indentation;
@@ -485,7 +488,7 @@ struct info_format_function functions[] = {
         {INFO_STR("restore"), INFO_STR('r'), info_restore},
         {INFO_STR("ansi"), INFO_STR('a'), info_ansi},
         {INFO_STR("store"), INFO_STR('b'), info_store},
-        //{INFO_STR("structured"), INFO_STR('s'), info_structured},
+        {INFO_STR("structured"), INFO_STR('s'), info_structured},
 
 };
 

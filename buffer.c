@@ -94,6 +94,13 @@ size_t info_internal_buffer_tell(info_buffer buffer)
         return buffer->cursor;
 }
 
+void info_internal_buffer_grow(info_buffer buffer, size_t size)
+{
+        info_internal_buffer_reserve(buffer, size);
+        buffer->size=size;
+}
+
+
 bool info_internal_buffer_seek(info_buffer buffer, size_t pos)
 {
         if(pos>buffer->size)
