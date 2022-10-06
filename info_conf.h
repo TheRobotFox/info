@@ -2,7 +2,7 @@
 // configure info
 //
 // use wide characters
-#define INFO_WIDE
+//#define INFO_WIDE
 //
 //
 // define your types here
