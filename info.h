@@ -56,20 +56,50 @@ void info_seg_begin();
 void info_seg_end();
 void info_mode(struct info_format format);
 
+#ifndef INFO_LVL
+#define INFO_LVL 3
+#endif
 
 // MARCOS
-#define PRINT(fmt,...) info_printf(INFO_STR(fmt), ##__VA_ARGS__);
 #define INFO_INTERNAL_MSG_SETUP(type) {info_Msg_origin((struct info_Origin){INFO_STR_X(__FILE__), __LINE__, __FUNCTION__}); info_Msg_type(type);}
 #define INFO_INTERNAL_MSG(type, ...) {info_release(); INFO_INTERNAL_MSG_SETUP(type); PRINT(__VA_ARGS__)}
-#define INFO(...) INFO_INTERNAL_MSG(INFO, __VA_ARGS__)
-#define ERROR(...) INFO_INTERNAL_MSG(ERROR, __VA_ARGS__)
-#define FATAL(...) {INFO_INTERNAL_MSG(FATAL, __VA_ARGS__) exit(-1);}
-#define SUCCESS(...) INFO_INTERNAL_MSG(SUCCESS, __VA_ARGS__)
-#define INDENT(n) info_indent(n);
+#if INFO_LVL>2
+#define PRINT(fmt,...) info_printf(INFO_STR(fmt), ##__VA_ARGS__);
 #define SEG_BEGIN(name) {INFO_INTERNAL_MSG_SETUP(SEG) info_seg_begin(name); INDENT(1) }
 #define SEG_END {INFO_INTERNAL_MSG_SETUP(SEG) INDENT(-1) info_seg_end();}
+#else
+#define PRINT(...) ;
+#define SEG_BEGIN(name) ;
+#define SEG_END ;
+#endif
+
+#if INFO_LVL>1
+#define INFO(...) INFO_INTERNAL_MSG(INFO, __VA_ARGS__)
+#define SUCCESS(...) INFO_INTERNAL_MSG(SUCCESS, __VA_ARGS__)
+#else
+#define INFO(...) ;
+#define SUCCESS(...) ;
+#endif
+
+#if INFO_LVL>0
+#define ERROR(...) INFO_INTERNAL_MSG(ERROR, __VA_ARGS__)
+#define INDENT(n) info_indent(n);
 #define HOLD info_hold();
 #define RELEASE info_release();
 #define COLOR(r,g,b) {info_color(INFO_ANSI_normal_color(r,g,b));}
+#else
+#define ERROR(...) ;
+#define INDENT(n) ;
+#define HOLD ;
+#define RELEASE ;
+#define COLOR(r,g,b) ;
+#endif
+
+#if INFO_LVL>-1
 #define MODE(m) info_mode(m);
+#define FATAL(...) {INFO_INTERNAL_MSG(FATAL, __VA_ARGS__) exit(-1);}
+#else
+#define MODE(m) ;
+#define FATAL(...) ;
+#endif
 
