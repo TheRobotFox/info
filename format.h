@@ -36,7 +36,6 @@
 // usw
 
 
-
 // DRAFT 4
 // %% -> %
 // %<f> == %f | short name
@@ -44,18 +43,11 @@
 // %[expr args]...<func_name>
 // %{name}( -> start substring name
 // %) end substring
-#define INFO_FORMAT_FORMAT_DEFAULT "[%t][%i] %[1]d%f: %<content>"
-#define INFO_FORMAT_NEWLINE_DEFAULT "\n%{%p}w%d"
 
 struct info_format
 {
-        const char *format;
-        const char *newline;
+        const info_char *format;
+        const info_char *newline;
 };
 
-static char *indent = "\t";
-static struct info_format info_format_default = { INFO_FORMAT_FORMAT_DEFAULT, INFO_FORMAT_NEWLINE_DEFAULT};
-static ANSI ansi_prefix = {1};
-
-typedef struct info_format info_Formats[(enum INFO_TYPE)INFO_COUNT];
-
+typedef struct info_format info_formats[INFO_COUNT];

@@ -19,18 +19,18 @@ ANSI current = {1};
 ANSI normal = {1};
 void info_internal_ANSI_stream_reset(FILE *f)
 {
-        fwrite("\033[0m", 1, 4, f);
+        FPUTS(INFO_STR("\033[0m"), f);
         current=normal;
 }
 void info_internal_ANSI_switch(info_buffer out, ANSI new)
 {
         if(new.normal){
                 //if(!current.normal)
-                        info_internal_buffer_printf(out, "\033[0m");
+                        info_internal_buffer_printf(out, INFO_STR("\033[0m"));
                 return;
         }
-        if(!info_internal_ANSI_color_cmp(new.forground, current.forground))
-                info_internal_buffer_printf(out, "\033[38;2;%d;%d;%dm", new.forground.r, new.forground.g, new.forground.b);
+        //if(!info_internal_ANSI_color_cmp(new.forground, current.forground))
+        info_internal_buffer_printf(out, INFO_STR("\033[38;2;%d;%d;%dm"), new.forground.r, new.forground.g, new.forground.b);
         current = new;
 
 }

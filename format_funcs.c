@@ -4,15 +4,20 @@
 typedef struct info_format_function_arg* Arg;
 #define RET_NOTHING return List_create(sizeof(struct info_internal_drawcall));
 
-char last_prefix_buff[512]={0};
-size_t last_prefix_buff_length=0;
+#define BUFFER_SIZE 512
+info_char store_buf[BUFFER_SIZE]={0};
+size_t store_buf_length=0;
 
-static bool util_strcmp(const char *a, const char *b, size_t len)
+static bool util_strcmp(const info_char *a, const info_char *b, size_t len)
 {
         for(size_t i=0; i<len; i++)
-                if(a!=b)
+        {
+                if(a[i]!=b[i])
+                        return true;
+                if(a[i]==0)
                         return false;
-        return true;
+        }
+        return false;
 }
 
 static size_t util_offset_get()
@@ -20,9 +25,88 @@ static size_t util_offset_get()
         return info_internal_buffer_tell(formatting_info.buffer);
 }
 
+static size_t util_count_line(const info_char *a, size_t length)
+{
+        size_t count = 0;
+        bool skip=false;
+        for(size_t i=0; i<length; i++){
+                if(a[i]==INFO_STR('\033')) skip=true;
+
+                if(skip || a[i]==0){
+                        if(a[i]=='m') skip=false;
+                }else{
+                        if(a[i]==INFO_STR('\n')){
+                                count=0;
+                        }else if(a[i]==INFO_STR('\t'))
+                                count+=STRLEN(indent);
+                        else
+                                count++;
+                }
+        }
+
+        return count;
+}
+
+static bool util_load_args(List args, int num, ...)
+{
+        if(List_size(args)!=num)
+                return false;
+
+        va_list list, check;
+        va_start(list, num);
+        va_copy(check, list);
+
+        for(struct info_format_function_arg *start = List_start(args),
+                        *end = List_end(args); start!=end; start++)
+        {
+                if(start->type!=va_arg(check, enum info_format_function_arg_type))
+                        return false;
+                va_arg(check, void*);
+        }
+
+        for(struct info_format_function_arg *start = List_start(args),
+                        *end = List_end(args); start!=end; start++)
+        {
+                switch(va_arg(list, enum info_format_function_arg_type))
+                {
+                        case INT: *va_arg(list, int*)=start->num; break;
+                        case BUFFER: *va_arg(list, info_buffer*)=start->buf; break;
+                }
+        }
+        return true;
+}
+
+static List util_print_n(info_char c, size_t n, ANSI ansi)
+{
+        List out = List_create(sizeof(struct info_internal_drawcall));
+        struct info_internal_drawcall *d = List_append(out, NULL);
+        d->ansi=ansi;
+        d->content_stream=TEXT;
+        d->content=info_internal_buffer_create(n);
+        info_internal_buffer_seek(d->content, n);
+
+        info_char *str = info_internal_buffer_str(d->content);
+
+        for(size_t i=0; i<n; i++)
+                str[i]=c;
+
+        return out;
+}
+
+static List util_return_string(enum info_internal_drawcall_content_stream stream, ANSI ansi, const info_char *str, size_t len)
+{
+
+        List out = List_create(sizeof(struct info_internal_drawcall));
+        struct info_internal_drawcall *d = List_append(out, NULL);
+        d->ansi=ansi;
+        d->content_stream=stream;
+        d->content=info_internal_buffer_create(len);
+        info_internal_buffer_append(d->content, str, len);
+        return out;
+}
 static List timestamp(List args)
 {
-        const char *fmt = "%d:%.2d:%.2d";
+        const info_char *fmt = INFO_STR("%d:%.2d:%.2d");
         // check args
         if(List_size(args)!=0){
                 INTERNAL_ERROR("got %d args but take at most 1", List_size(args))
@@ -68,9 +152,13 @@ static List substring_start(List args)
                         INTERNAL_ERROR("wrong arg type! Need BUFFER arg")
                         return NULL;
                 }
-                substring.name=info_internal_buffer_str(arg->buf);
+                substring.name=info_internal_buffer_create(info_internal_buffer_tell(arg->buf));
+                info_internal_buffer_append(substring.name,
+                                        info_internal_buffer_str(arg->buf),
+                                        info_internal_buffer_tell(arg->buf));
         }
-
+        if(!substring.name)
+                substring.name = info_internal_buffer_create(1);
 
 
         List_append(substring_tmp, &substring);
@@ -104,9 +192,23 @@ static List substring_end(List args)
 
 static List info_tag(List args)
 {
-        List drawcall_list = List_create(sizeof(struct info_internal_drawcall));
-        info_internal_drawcall_printf(drawcall_list, TEXT, info_ANSI[formatting_info.current->type],  info_internal_type_ids[formatting_info.current->type]);
-        return drawcall_list;
+        int output_color = false;
+        if(util_load_args(args, 0));
+        else if(util_load_args(args, 1, INT, &output_color));
+        else {
+                INTERNAL_ERROR("wrong args")
+                return NULL;
+        }
+        if(output_color){
+                List out = List_create(sizeof(struct info_internal_drawcall));
+                struct info_ANSI_color col = info_internal_ANSI[formatting_info.current->type].forground;
+                info_internal_drawcall_printf(out, TEXT, ansi_prefix, INFO_STR("%d,%d,%d"), col.r, col.g, col.b);
+                return out;
+        } else {
+                enum INFO_TYPE type = formatting_info.current->type;
+                const info_char *str = info_internal_tags[type];
+                return util_return_string(TEXT, info_internal_ANSI[type], str, STRLEN(str));
+        }
 }
 
 static List info_content(List args)
@@ -153,8 +255,49 @@ List info_funcname(List args)
                 INTERNAL_ERROR("func name doesn't take any arguments")
                 return NULL;
         }
+        size_t len;
+#ifdef INFO_WIDE
+        info_char *str;
+        const char *bstr = formatting_info.current->origin.func;
+        len = strlen(bstr);
+        str = malloc(len*sizeof(info_char));
+        for(int i=0; i<len; i++)
+                str[i]=btowc(bstr[i]);
+#else
+        const info_char *str;
+        str = formatting_info.current->origin.func;
+        len = STRLEN(str);
+#endif
         List out = List_create(sizeof(struct info_internal_drawcall));
-        info_internal_drawcall_printf(out, TEXT, ansi_prefix, formatting_info.current->origin.func);
+        struct info_internal_drawcall *d = List_append(out, NULL);
+        d->ansi=formatting_info.current->start;
+        d->content_stream=TEXT;
+        d->content=info_internal_buffer_create(len);
+        info_internal_buffer_append(d->content, str, len);
+#ifdef INFO_WIDE
+        free(str);
+#endif
+        return out;
+}
+
+static List info_file(List args)
+{
+        if(!util_load_args(args, 0)){
+                INTERNAL_ERROR("No args!")
+                return NULL;
+        }
+        const info_char *str = formatting_info.current->origin.file;
+        return util_return_string(TEXT, ansi_prefix, str, STRLEN(str));
+}
+
+static List info_line(List args)
+{
+        if(!util_load_args(args, 0)){
+                INTERNAL_ERROR("No args!")
+                return NULL;
+        }
+        List out = List_create(sizeof(struct info_internal_drawcall));
+        info_internal_drawcall_printf(out, TEXT, ansi_prefix, INFO_STR("%lu"), formatting_info.current->origin.line);
         return out;
 }
 
@@ -172,75 +315,66 @@ static List info_whitespaces(List args)
                 return NULL;
         }
 
-        List out = List_create(sizeof(struct info_internal_drawcall));
-
-        size_t sstrlen =info_internal_buffer_tell(arg->buf);
-        struct info_internal_drawcall *d = List_append(out, NULL);
-        d->ansi=formatting_info.current->start;
-        d->content_stream=TEXT;
-        d->content=info_internal_buffer_create(sstrlen);
-
-        char *out_str = info_internal_buffer_str(d->content);
-        const char *in_str = info_internal_buffer_str(arg->buf);
-        bool skip=false;
-        int pos = 0;
-        for(int i=0; i<sstrlen; i++)
-        {
-                if(in_str[i]=='\033') skip=true;
-
-                if(skip || in_str[i]==0){
-                        if(in_str[i]=='m') skip=false;
-                }else{
-                        if(in_str[i]=='\t' || in_str[i]=='\n')
-                                out_str[pos]==in_str[i];
-                        else
-                                out_str[pos]=' ';
-                        pos++;
-                }
-        }
-        info_internal_buffer_seek(d->content, pos);
-        return out;
+        int count = util_count_line(info_internal_buffer_str(arg->buf), info_internal_buffer_tell(arg->buf));
+        return util_print_n(INFO_STR(' '), count, formatting_info.current->start);
 }
+
+static void info_internal_store(info_char *buf, size_t *buf_length, size_t size)
+{
+        const info_char * prefix_str = info_internal_buffer_str(formatting_info.buffer);
+        size_t lenght = util_offset_get();
+        lenght = lenght<size ? lenght : size;
+        *buf_length=lenght;
+        for(int i=0; i<lenght; i++)
+                buf[i]=prefix_str[i];
+}
+
+static List info_store(List args)
+{
+        if(List_size(args)>1){
+                INTERNAL_ERROR("takes at most 1 argument");
+                return NULL;
+        }
+        info_internal_store(store_buf, &store_buf_length,  BUFFER_SIZE);
+        RET_NOTHING;
+}
+
 
 static List info_indentation(List args)
 {
-        if(List_size(args)>1){
-                INTERNAL_ERROR("take at most one arg, but got %d!", List_size(args))
-                return NULL;
-        }
-        bool save = false;
-        if(List_size(args)==1){
-                Arg arg = List_get(args, 0);
-                if(arg->type!=INT){
-                        INTERNAL_ERROR("INT is required")
-                        return NULL;
-                }
-                save=arg->num==1;
-        }
-
-
-        // save prefix
-        if(save){
-                const char * prefix_str = info_internal_buffer_str(formatting_info.buffer);
-                size_t lenght = util_offset_get();
-                lenght = lenght<512 ? lenght : 512;
-                last_prefix_buff_length=lenght;
-                for(int i=0; i<lenght; i++)
-                        last_prefix_buff[i]=prefix_str[i];
-        }
 
         unsigned short indentation = formatting_info.current->indentation;
-        List out = List_create(sizeof(struct info_internal_drawcall));
-        struct info_internal_drawcall *d = List_append(out, NULL);
-        d->ansi=formatting_info.current->start;
-        d->content_stream=TEXT;
-        d->content=info_internal_buffer_create(indentation);
+        return util_print_n(INFO_STR('\t'), indentation, formatting_info.current->start);
+}
 
-        char *str = info_internal_buffer_str(d->content);
-        for(unsigned short i=0; i<indentation; i++)
-                str[i]='\t';
-        info_internal_buffer_seek(d->content, indentation);
-        return out;
+static List info_structured(List args)
+{
+        static size_t last_indentation = 0;
+        if(List_size(args)){
+                INTERNAL_ERROR("Takes no args")
+                return NULL;
+        }
+        size_t indentation = formatting_info.current->indentation;
+
+        if(last_indentation==indentation)
+                RET_NOTHING;
+
+        List drawcall_list = List_create(sizeof(struct info_internal_drawcall));
+        ANSI ansi = formatting_info.current->start;
+
+        if(indentation>last_indentation){
+                List tmp = util_print_n(INFO_STR('\t'), indentation-1, ansi);
+                List_concat(drawcall_list, tmp);
+                info_internal_drawcall_printf(drawcall_list, TEXT, ansi, INFO_STR("{\n"));
+                List_free(tmp);
+        }else{
+                info_internal_drawcall_printf(drawcall_list, TEXT, formatting_info.current->start, INFO_STR("}\n"));
+
+        }
+        last_indentation=indentation;
+
+
+        return drawcall_list;
 }
 
 static List info_substring_get(List args)
@@ -259,15 +393,11 @@ static List info_substring_get(List args)
                 Arg arg = List_get(args,0);
                 if(arg->type==INT){
                         index=arg->num;
-                        if(index>List_size(formatting_info.substrings)){
-                                INTERNAL_ERROR("substring index %d out of range", List_size(formatting_info.substrings))
-                                return NULL;
-                        }
                 }else if(arg->type==BUFFER){
-                       for(int i=0; i<List_size(args); i++)
+                       for(int i=0; i<List_size(formatting_info.substrings); i++)
                        {
                                struct info_internal_format_substring *sstr = List_get(formatting_info.substrings, i);
-                               if(!strcmp(sstr->name, info_internal_buffer_str(arg->buf))){
+                               if(!util_strcmp(info_internal_buffer_str(sstr->name), info_internal_buffer_str(arg->buf), info_internal_buffer_tell(arg->buf))){
                                        index=i;
                                        goto fin;
                                }
@@ -277,6 +407,10 @@ static List info_substring_get(List args)
                 }
         }
 fin:
+        if(index>=(int)List_size(formatting_info.substrings) || List_size(formatting_info.substrings)==0){
+                INTERNAL_ERROR("substring index %d out of range", index)
+                return NULL;
+        }
         struct info_internal_format_substring *sstr = List_get(formatting_info.substrings, index);
         List out = List_create(sizeof(struct info_internal_drawcall));
 
@@ -285,13 +419,13 @@ fin:
         d->ansi=formatting_info.current->start;
         d->content_stream=TEXT;
         d->content=info_internal_buffer_create(lenght);
-        char *str_start = info_internal_buffer_str(formatting_info.buffer);
+        info_char *str_start = info_internal_buffer_str(formatting_info.buffer);
         info_internal_buffer_append(d->content, str_start+sstr->offset_start, lenght);
 
         return out;
 }
 
-List info_last_prefix(List args)
+static List info_restore(List args)
 {
         if(List_size(args)){
                 INTERNAL_ERROR("takes no arguments!")
@@ -303,24 +437,55 @@ List info_last_prefix(List args)
         struct info_internal_drawcall *d = List_append(out, NULL);
         d->ansi=formatting_info.current->start;
         d->content_stream=TEXT;
-        d->content=info_internal_buffer_create(last_prefix_buff_length);
-        info_internal_buffer_append(d->content, last_prefix_buff, last_prefix_buff_length);
+        d->content=info_internal_buffer_create(store_buf_length);
+        info_internal_buffer_append(d->content, store_buf, store_buf_length);
+
+        return out;
+}
+
+static List info_ansi(List args)
+{
+        if(List_size(args)!=4){
+usage:
+                INTERNAL_ERROR("ansi needs 4 args {STR}[R][G][B]")
+                return NULL;
+        }
+        Arg str = List_get(args, 0);
+        if(str->type!=BUFFER)
+                goto usage;
+        Arg r = List_get(args, 1);
+        Arg g = List_get(args, 2);
+        Arg b = List_get(args, 3);
+        if(r->type !=INT || g->type !=INT || b->type !=INT)
+                goto usage;
+
+        List out = List_create(sizeof(struct info_internal_drawcall));
+
+        struct info_internal_drawcall *d = List_append(out, NULL);
+        d->ansi=INFO_ANSI_normal_color(r->num,g->num,b->num);
+        d->content_stream=TEXT;
+        d->content=info_internal_buffer_create(info_internal_buffer_tell(str->buf));
+        info_internal_buffer_append(d->content, info_internal_buffer_str(str->buf), info_internal_buffer_tell(str->buf));
 
         return out;
 }
 
 struct info_format_function functions[] = {
-        {"timestamp", 't', timestamp},
-        {"type", 'i', info_tag},
-        {"sub_beg", '(', substring_start},
-        {"sub_end", ')', substring_end},
-        {"content", 'c', info_content},
-        {"function", 'f', info_funcname},
-        {"whitespaces", 'w', info_whitespaces},
-        {"indent", 'd', info_indentation},
-        {"substring", 's', info_substring_get},
-        {"last_prefix", 'p', info_last_prefix},
-
+        {INFO_STR("timestamp"), INFO_STR('t'), timestamp},
+        {INFO_STR("tag"), INFO_STR('i'), info_tag},
+        {INFO_STR("sub_beg"), INFO_STR('('), substring_start},
+        {INFO_STR("sub_end"), INFO_STR(')'), substring_end},
+        {INFO_STR("content"), INFO_STR('c'), info_content},
+        {INFO_STR("function"), INFO_STR('f'), info_funcname},
+        {INFO_STR("file"), INFO_STR('F'), info_file},
+        {INFO_STR("line"), INFO_STR('L'), info_line},
+        {INFO_STR("whitespaces"), INFO_STR('w'), info_whitespaces},
+        {INFO_STR("indent"), INFO_STR('d'), info_indentation},
+        {INFO_STR("sub_get"), INFO_STR('g'), info_substring_get},
+        {INFO_STR("restore"), INFO_STR('r'), info_restore},
+        {INFO_STR("ansi"), INFO_STR('a'), info_ansi},
+        {INFO_STR("store"), INFO_STR('b'), info_store},
+        //{INFO_STR("structured"), INFO_STR('s'), info_structured},
 
 };
 

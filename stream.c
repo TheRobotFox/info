@@ -16,10 +16,12 @@ bool info_internal_stream_output(info_stream stream, info_Msg message)
 {
         info_buffer buffer = info_internal_buffer_create(0);
 
-        if(info_format_Msg_format(message, stream->format, stream->ANSI_support, buffer))
+        struct info_format format = info_format_select(format_current, info_internal_formats[message->type]);
+        format = info_format_select(format, stream->formats[message->type]);
+        if(info_format_Msg_format(message, format, stream->ANSI_support, buffer))
                 INTERNAL("Could not eval message!")
-        fwrite(info_internal_buffer_str(buffer), 1, info_internal_buffer_tell(buffer), stream->f);
-        fputc('\n', stream->f);
+        FPUTS(info_internal_buffer_str(buffer), stdout);
+        FPUTC(INFO_STR('\n'), stream->f);
         if(stream->ANSI_support)
                 info_internal_ANSI_stream_reset(stream->f);
         fflush(stream->f);

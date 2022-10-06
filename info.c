@@ -2,30 +2,24 @@
 #include "stream_internal.h"
 #include <stddef.h>
 #include <time.h>
+#include <locale.h>
 
-#define INFO_GENERATE_STRING(STRING) [STRING] = #STRING,
-
-const char *info_internal_type_ids[] = {
-	INFO_FOREACH_FUNC(INFO_GENERATE_STRING)
-	[FATAL] = "FATAL ERROR"
-};
 
 struct info_internal_Msg message = { ZERO, {0}, NULL, 0, {1}};
-bool hold=false, holding=false, col_unset, init=true;
+bool hold=false, holding=false, col_set=false, init=true;
 struct info_internal_stream output = {0};
-extern size_t last_prefix_buff_length;
 
 #define MAX_SEG_NEST 128
 struct Segment
 {
 	clock_t start;
-	const char *name;
+	const info_char *name;
 };
 
 struct Segment seg_data[MAX_SEG_NEST];
 size_t seg_index = 0;
 
-void info_seg_begin(const char *name)
+void info_seg_begin(const info_char *name)
 {
 	HOLD
 	PRINT("Segment ");
@@ -47,7 +41,7 @@ void info_seg_begin(const char *name)
 	seg_index++;
 }
 
-void info_seg_end(const char *func_name)
+void info_seg_end(const info_char *func_name)
 {
 	seg_index--;
 
@@ -65,16 +59,15 @@ void info_seg_end(const char *func_name)
 	RELEASE
 }
 
-void info_indent(int n)
+void info_mode(struct info_format format)
 {
-	if(!n)
-		message.indentation=0;
-	message.indentation+=n;
+	format_current=format;
 }
 
-void info_reset()
+int info_indent(int n)
 {
-	last_prefix_buff_length=0;
+	message.indentation+=n;
+	return message.indentation;
 }
 
 void info_Msg_origin(struct info_Origin origin)
@@ -110,7 +103,7 @@ void info_release(void)
 	message.drawcall_list=NULL;
 	message.current=(ANSI){1};
 	message.type=ZERO;
-	col_unset=true;
+	col_set=false;
 	hold=false;
 	holding=false;
 }
@@ -118,10 +111,10 @@ void info_release(void)
 void info_color(ANSI ansi)
 {
 	message.current=ansi;
-	col_unset=false;
+	col_set=true;
 }
 
-bool info_internal_drawcall_vprintf(List drawcall_list, enum info_internal_drawcall_content_stream stream, ANSI ansi, const char *format, va_list args)
+bool info_internal_drawcall_vprintf(List drawcall_list, enum info_internal_drawcall_content_stream stream, ANSI ansi, const info_char *format, va_list args)
 {
 	struct info_internal_drawcall* drawcall = List_append(drawcall_list, NULL);
 	drawcall->content_stream=stream;
@@ -130,7 +123,7 @@ bool info_internal_drawcall_vprintf(List drawcall_list, enum info_internal_drawc
 	return info_internal_buffer_vprintf(drawcall->content, format, args);
 }
 
-bool info_internal_drawcall_printf(List drawcall_list, enum info_internal_drawcall_content_stream stream, ANSI ansi, const char *format, ...)
+bool info_internal_drawcall_printf(List drawcall_list, enum info_internal_drawcall_content_stream stream, ANSI ansi, const info_char *format, ...)
 {
 	va_list args;
 	va_start(args, format);
@@ -139,19 +132,19 @@ bool info_internal_drawcall_printf(List drawcall_list, enum info_internal_drawca
 	return ret;
 }
 
-void info_printf(const char *format, ...)
+void info_printf(const info_char *format, ...)
 {
 	if(init)
 	{
 		holding=true;
 		output.f=stdout;
 		output.ANSI_support=true;
-		for(int i=ZERO; i<INFO_COUNT; i++)
-			output.format[i]=info_format_default;
+		//output.formats={0};
+		setlocale(LC_ALL,"en_US.UTF-8");
 	}
 
-	if(col_unset){
-		info_color(info_ANSI[message.type]);
+	if(!col_set){
+		//info_color(info_ANSI[message.type]);
 		message.start=message.current;
 	}
 	if(!message.drawcall_list)

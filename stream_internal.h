@@ -10,7 +10,7 @@ struct info_internal_stream
 {
         FILE *f;
         bool ANSI_support;
-        info_Formats format;
+        info_formats formats;
 };
 
 bool info_internal_stream_output(info_stream stream, info_Msg message);

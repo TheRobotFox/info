@@ -4,7 +4,7 @@
 
 struct info_internal_buffer
 {
-        char *str;
+        info_char *str;
         size_t size;
         size_t cursor;
 };
@@ -19,12 +19,12 @@ info_buffer info_internal_buffer_create(size_t size)
                 info_internal_buffer_reserve(b,size);
         return b;
 }
-bool info_internal_buffer_append(info_buffer buf, const char *str, size_t length)
+bool info_internal_buffer_append(info_buffer buf, const info_char *str, size_t length)
 {
         if(info_internal_buffer_reserve(buf, buf->cursor+length))
                 return true;
 
-        memcpy(buf->str+buf->cursor, str, length);
+        memcpy(buf->str+buf->cursor, str, length*sizeof(info_char));
         buf->cursor+=length;
         return false;
 }
@@ -35,9 +35,25 @@ bool info_internal_buffer_consume(info_buffer buffer, info_buffer co)
         return res;
 }
 
-bool info_internal_buffer_vprintf(info_buffer buffer, const char *format, va_list args)
+bool info_internal_buffer_vprintf(info_buffer buffer, const info_char *format, va_list args)
 {
+        if(!format)
+                INTERNAL("printf format is NULL")
+        int res;
         va_list arg_tmp;
+#ifdef INFO_WIDE
+
+        info_internal_buffer_reserve(buffer, 100);
+        va_copy(arg_tmp, args);
+        while((res=vswprintf(buffer->str+buffer->cursor, buffer->size-buffer->cursor, format, args))==-1)
+        {
+                va_copy(arg_tmp, args);
+                info_internal_buffer_reserve(buffer, buffer->size*2);
+        }
+
+        buffer->cursor+=res;
+        return false;
+#else
         va_copy(arg_tmp, args);
 
         int length = vsnprintf(buffer->str+buffer->cursor ,0, format, arg_tmp);
@@ -47,12 +63,13 @@ bool info_internal_buffer_vprintf(info_buffer buffer, const char *format, va_lis
 
         info_internal_buffer_reserve(buffer, buffer->cursor+length+1);
 
-        int res = vsnprintf(buffer->str+buffer->cursor, length+1, format, args);
+        res = vsnprintf(buffer->str+buffer->cursor, length+1, format, args);
         buffer->cursor+=length;
         return res!=length;
+#endif
 
 }
-bool info_internal_buffer_printf(info_buffer buffer, const char *format, ...)
+bool info_internal_buffer_printf(info_buffer buffer, const info_char *format, ...)
 {
         va_list args;
         va_start(args, format);
@@ -65,7 +82,7 @@ bool info_internal_buffer_reserve(info_buffer buf, size_t size)
 {
         if(size<=buf->size)
                 return false;
-        buf->str = realloc(buf->str, size);
+        buf->str = realloc(buf->str, size*sizeof(info_char));
         buf->size=size;
         if(!buf->str)
                 INTERNAL("realloc failed!")
@@ -86,7 +103,7 @@ bool info_internal_buffer_seek(info_buffer buffer, size_t pos)
 }
 
 
-char *info_internal_buffer_str(info_buffer buffer)
+info_char *info_internal_buffer_str(info_buffer buffer)
 {
         info_internal_buffer_reserve(buffer, buffer->cursor+1);
         buffer->str[buffer->cursor]=0;

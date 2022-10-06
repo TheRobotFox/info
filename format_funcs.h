@@ -5,8 +5,8 @@
 
 struct info_format_function
 {
-        const char *name;
-        char shortname;
+        const info_char *name;
+        info_char shortname;
         List (*func)(List);
 };
 
@@ -28,7 +28,7 @@ struct info_format_function_arg
 
 struct info_internal_format_substring
 {
-        const char *name;
+        info_buffer name;
         size_t offset_start, offset_end;
 };
 
@@ -38,6 +38,7 @@ struct formatting_info
         info_buffer buffer;
         //size_t line;
         size_t start_offset;
+        size_t func_offset;
         List substrings;
 };
 

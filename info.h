@@ -1,67 +1,65 @@
 #pragma once
 #include "List/List.h"
 #include "ANSI.h"
+#include <wchar.h>
 #include <stdarg.h>
 
 // Thanks to https://stackoverflow.com/questions/9907160/how-to-convert-enum-names-to-string-in-c
-#define INFO_FOREACH_FUNC(FUNC) \
-        FUNC(INFO)     		    	\
-        FUNC(SUCCESS)	        	\
-        FUNC(ERROR)      	    	\
-        FUNC(SEG)     	      	\
-
 #define INFO_GENERATE_ENUM(ENUM) ENUM,
-#define INFO_GENERATE_ANSI(ENUM) [ENUM] = (struct info_ANSI){1},
 
-enum INFO_TYPE
-{
-	ZERO,
-	INFO_FOREACH_FUNC(INFO_GENERATE_ENUM)
-
-
-	FATAL,
-
-
-	INFO_COUNT
-};
+#include "info_conf.h"
 
 #undef INFO_GENERATE_ENUM
 
+#define INFO_INTERNAL_CAT_X(a, b) a##b
+#ifdef INFO_WIDE
+  #define INFO_STR(str) L##str
+  #define INFO_STR_X(str) INFO_INTERNAL_CAT_X(L,str)
+	#define STRLEN wcslen
+	#define STRTOL wcstol
+	#define STRCMP wcsncmp
+	#define FPUTS fputws
+	#define FPUTC fputwc
+	#define PRINTF wprintf
+	typedef wchar_t info_char;
+#else
+  #define INFO_STR(str) str
+	#define INFO_STR_X INFO_STR
+	#define STRLEN strlen
+	#define STRTOL strtol
+	#define STRCMP strncmp
+	#define FPUTS fputs
+	#define FPUTC fputc
+	#define PRINTF printf
+	typedef char info_char;
+#endif
 
-static ANSI info_ANSI[] = {
-	// set defaults
-	INFO_FOREACH_FUNC(INFO_GENERATE_ANSI)
-	[ZERO] = INFO_ANSI_normal_color(255,255,255),
-
-	[INFO] = INFO_ANSI_normal_color(0, 200, 255),
-	[SEG] = INFO_ANSI_normal_color(200, 255, 0),
-	[ERROR] = INFO_ANSI_normal_color(200, 70, 70),
-	[FATAL] = INFO_ANSI_normal_color(255, 0, 0),
-	[SUCCESS] = INFO_ANSI_normal_color(0, 255, 0),
-};
+#include "format.h"
+extern const struct info_format format_default;
+extern const struct info_format format_structured;
 
 struct info_Origin
 {
-	const char *file;
+	const info_char *file;
 	size_t line;
 	const char *func;
 };
 
-void info_printf(const char *format, ...);
+void info_printf(const info_char *format, ...);
 void info_Msg_origin(struct info_Origin origin);
 void info_Msg_type(enum INFO_TYPE type);
 void info_hold(void);
 void info_release(void);
 void info_color(ANSI ansi);
-void info_indent(int n);
+int info_indent(int n);
 void info_seg_begin();
 void info_seg_end();
-void info_reset();
+void info_mode(struct info_format format);
 
 
 // MARCOS
-#define PRINT(...) info_printf(__VA_ARGS__);
-#define INFO_INTERNAL_MSG_SETUP(type) {info_Msg_origin((struct info_Origin){__FILE__, __LINE__, __FUNCTION__}); info_Msg_type(type);}
+#define PRINT(fmt,...) info_printf(INFO_STR(fmt), ##__VA_ARGS__);
+#define INFO_INTERNAL_MSG_SETUP(type) {info_Msg_origin((struct info_Origin){INFO_STR_X(__FILE__), __LINE__, __FUNCTION__}); info_Msg_type(type);}
 #define INFO_INTERNAL_MSG(type, ...) {info_release(); INFO_INTERNAL_MSG_SETUP(type); PRINT(__VA_ARGS__)}
 #define INFO(...) INFO_INTERNAL_MSG(INFO, __VA_ARGS__)
 #define ERROR(...) INFO_INTERNAL_MSG(ERROR, __VA_ARGS__)
@@ -72,6 +70,6 @@ void info_reset();
 #define SEG_END {INFO_INTERNAL_MSG_SETUP(SEG) INDENT(-1) info_seg_end();}
 #define HOLD info_hold();
 #define RELEASE info_release();
-#define RESET info_reset();
 #define COLOR(r,g,b) {info_color(INFO_ANSI_normal_color(r,g,b));}
+#define MODE(m) info_mode(m);
 
