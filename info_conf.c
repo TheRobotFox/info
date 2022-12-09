@@ -47,7 +47,7 @@ info_formats info_internal_formats = {
 // Message prefix ANSI
 ANSI ansi_prefix = {1};
 //
-const info_char *indent = INFO_STR("    ");
+const size_t tab_width = 4;
 //
 // example formats
 const struct info_format format_default = { FORMAT_DEFAULT, NEWLINE_DEFAULT};

@@ -109,6 +109,12 @@ bool info_internal_buffer_seek(info_buffer buffer, size_t pos)
         return false;
 }
 
+bool info_internal_buffer_putc(info_buffer buffer, char c)
+{
+        info_internal_buffer_reserve(buffer, buffer->cursor+1);
+        buffer->str[buffer->cursor++]=c;
+        return true;
+}
 
 info_char *info_internal_buffer_str(info_buffer buffer)
 {

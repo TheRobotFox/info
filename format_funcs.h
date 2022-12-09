@@ -36,11 +36,13 @@ struct formatting_info
 {
         info_Msg current;
         info_buffer buffer;
+        struct info_format *format;
         //size_t line;
         size_t start_offset;
         size_t func_offset;
         List substrings;
 };
+size_t util_get_pos(const info_char *a, size_t length);
 
 extern struct formatting_info formatting_info;
 

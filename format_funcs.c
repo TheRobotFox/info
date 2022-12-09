@@ -20,31 +20,9 @@ static bool util_strcmp(const info_char *a, const info_char *b, size_t len)
         return false;
 }
 
-static size_t util_offset_get()
+size_t util_offset_get()
 {
         return info_internal_buffer_tell(formatting_info.buffer);
-}
-
-static size_t util_count_line(const info_char *a, size_t length)
-{
-        size_t count = 0;
-        bool skip=false;
-        for(size_t i=0; i<length; i++){
-                if(a[i]==INFO_STR('\033')) skip=true;
-
-                if(skip || a[i]==0){
-                        if(a[i]=='m') skip=false;
-                }else{
-                        if(a[i]==INFO_STR('\n')){
-                                count=0;
-                        }else if(a[i]==INFO_STR('\t'))
-                                count+=STRLEN(indent);
-                        else
-                                count++;
-                }
-        }
-
-        return count;
 }
 
 static bool util_load_args(List args, int num, ...)
@@ -315,7 +293,7 @@ static List info_whitespaces(List args)
                 return NULL;
         }
 
-        int count = util_count_line(info_internal_buffer_str(arg->buf), info_internal_buffer_tell(arg->buf));
+        int count = util_get_pos(info_internal_buffer_str(arg->buf), info_internal_buffer_tell(arg->buf));
         return util_print_n(INFO_STR(' '), count, formatting_info.current->start);
 }
 
@@ -472,6 +450,10 @@ usage:
 
         return out;
 }
+static List info_pos(List args)
+{
+
+}
 
 struct info_format_function functions[] = {
         {INFO_STR("timestamp"), INFO_STR('t'), timestamp},
@@ -488,8 +470,10 @@ struct info_format_function functions[] = {
         {INFO_STR("restore"), INFO_STR('r'), info_restore},
         {INFO_STR("ansi"), INFO_STR('a'), info_ansi},
         {INFO_STR("store"), INFO_STR('b'), info_store},
+        {INFO_STR("pos"), INFO_STR('p'), info_pos},
         {INFO_STR("structured"), INFO_STR('s'), info_structured},
 
 };
 
 size_t functions_count = sizeof(functions)/sizeof(*functions);
+

@@ -35,7 +35,7 @@ extern const ANSI info_internal_ANSI[];
 extern info_formats info_internal_formats;
 extern struct info_format format_current;
 extern ANSI ansi_prefix;
-extern const info_char *indent;
+extern const size_t tab_width;
 
 bool info_internal_drawcall_vprintf(List drawcall_list, enum info_internal_drawcall_content_stream stream, ANSI ansi, const info_char *format, va_list args);
 bool info_internal_drawcall_printf(List drawcall_list, enum info_internal_drawcall_content_stream stream, ANSI ansi, const info_char *format, ...);
