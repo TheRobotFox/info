@@ -114,7 +114,7 @@ static bool info_internal_format_arg_read(List args, enum info_format_function_a
                         info_internal_buffer_free(tmp);
                         return true;
         }
-        return !List_append(args, &arg);
+        return !List_push(args, &arg);
 }
 
 // very ugly

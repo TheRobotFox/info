@@ -89,7 +89,7 @@ void info_mode(struct info_format format);
 #define COLOR(r,g,b) {info_color(INFO_ANSI_normal_color(r,g,b));}
 #else
 #define ERROR(...) ;
-#define INDENT(n) ;
+#define INDENT(n) 0;
 #define HOLD ;
 #define RELEASE ;
 #define COLOR(r,g,b) ;
