@@ -57,7 +57,7 @@ static bool util_load_args(List args, int num, ...)
 static List util_print_n(info_char c, size_t n, ANSI ansi)
 {
         List out = List_create(sizeof(struct info_internal_drawcall));
-        struct info_internal_drawcall *d = List_append(out, NULL);
+        struct info_internal_drawcall *d = List_push(out, NULL);
         d->ansi=ansi;
         d->content_stream=TEXT;
         d->content=info_internal_buffer_create(n);
@@ -75,7 +75,7 @@ static List util_return_string(enum info_internal_drawcall_content_stream stream
 {
 
         List out = List_create(sizeof(struct info_internal_drawcall));
-        struct info_internal_drawcall *d = List_append(out, NULL);
+        struct info_internal_drawcall *d = List_push(out, NULL);
         d->ansi=ansi;
         d->content_stream=stream;
         d->content=info_internal_buffer_create(len);
@@ -139,7 +139,7 @@ static List substring_start(List args)
                 substring.name = info_internal_buffer_create(1);
 
 
-        List_append(substring_tmp, &substring);
+        List_push(substring_tmp, &substring);
         RET_NOTHING
 }
 
@@ -158,7 +158,7 @@ static List substring_end(List args)
         struct info_internal_format_substring *substring = List_pop(substring_tmp);
         substring->offset_end = info_internal_buffer_tell(formatting_info.buffer);
 
-        List_append(formatting_info.substrings, substring);
+        List_push(formatting_info.substrings, substring);
 
         if(!List_size(substring_tmp)){
                 List_free(substring_tmp);
@@ -216,7 +216,7 @@ static List info_content(List args)
                         start!=end; start++)
         {
                 if(start->content_stream==stream){
-                        struct info_internal_drawcall *d = List_append(out, NULL);
+                        struct info_internal_drawcall *d = List_push(out, NULL);
                         d->ansi=start->ansi;
                         d->content_stream=stream;
                         d->content=info_internal_buffer_create(20);
@@ -247,7 +247,7 @@ List info_funcname(List args)
         len = STRLEN(str);
 #endif
         List out = List_create(sizeof(struct info_internal_drawcall));
-        struct info_internal_drawcall *d = List_append(out, NULL);
+        struct info_internal_drawcall *d = List_push(out, NULL);
         d->ansi=formatting_info.current->start;
         d->content_stream=TEXT;
         d->content=info_internal_buffer_create(len);
@@ -396,7 +396,7 @@ fin:
         List out = List_create(sizeof(struct info_internal_drawcall));
 
         size_t lenght = sstr->offset_end-sstr->offset_start;
-        struct info_internal_drawcall *d = List_append(out, NULL);
+        struct info_internal_drawcall *d = List_push(out, NULL);
         d->ansi=formatting_info.current->start;
         d->content_stream=TEXT;
         d->content=info_internal_buffer_create(lenght);
@@ -415,7 +415,7 @@ static List info_restore(List args)
 
         List out = List_create(sizeof(struct info_internal_drawcall));
 
-        struct info_internal_drawcall *d = List_append(out, NULL);
+        struct info_internal_drawcall *d = List_push(out, NULL);
         d->ansi=formatting_info.current->start;
         d->content_stream=TEXT;
         d->content=info_internal_buffer_create(store_buf_length);
@@ -442,7 +442,7 @@ usage:
 
         List out = List_create(sizeof(struct info_internal_drawcall));
 
-        struct info_internal_drawcall *d = List_append(out, NULL);
+        struct info_internal_drawcall *d = List_push(out, NULL);
         d->ansi=INFO_ANSI_normal_color(r->num,g->num,b->num);
         d->content_stream=TEXT;
         d->content=info_internal_buffer_create(info_internal_buffer_tell(str->buf));

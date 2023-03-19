@@ -116,7 +116,7 @@ void info_color(ANSI ansi)
 
 bool info_internal_drawcall_vprintf(List drawcall_list, enum info_internal_drawcall_content_stream stream, ANSI ansi, const info_char *format, va_list args)
 {
-	struct info_internal_drawcall* drawcall = List_append(drawcall_list, NULL);
+	struct info_internal_drawcall* drawcall = List_push(drawcall_list, NULL);
 	drawcall->content_stream=stream;
 	drawcall->ansi=ansi;
 	drawcall->content = info_internal_buffer_create(20);
