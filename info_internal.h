@@ -7,18 +7,6 @@
 #define INTERNAL(...) {INTERNAL_ERROR(__VA_ARGS__); return true;}
 #define PANIC(...) {INTERNAL_ERROR(__VA_ARGS__); exit(1); }
 
-enum info_internal_drawcall_content_stream
-{
-        TEXT
-};
-
-struct info_internal_drawcall
-{
-        enum info_internal_drawcall_content_stream content_stream;
-        ANSI ansi;
-        info_buffer content;
-};
-
 struct info_internal_Msg
 {
         enum INFO_TYPE type;
@@ -37,5 +25,3 @@ extern struct info_format format_current;
 extern ANSI ansi_prefix;
 extern const info_char *indent;
 
-bool info_internal_drawcall_vprintf(List drawcall_list, enum info_internal_drawcall_content_stream stream, ANSI ansi, const info_char *format, va_list args);
-bool info_internal_drawcall_printf(List drawcall_list, enum info_internal_drawcall_content_stream stream, ANSI ansi, const info_char *format, ...);

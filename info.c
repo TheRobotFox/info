@@ -114,24 +114,6 @@ void info_color(ANSI ansi)
 	col_set=true;
 }
 
-bool info_internal_drawcall_vprintf(List drawcall_list, enum info_internal_drawcall_content_stream stream, ANSI ansi, const info_char *format, va_list args)
-{
-	struct info_internal_drawcall* drawcall = List_append(drawcall_list, NULL);
-	drawcall->content_stream=stream;
-	drawcall->ansi=ansi;
-	drawcall->content = info_internal_buffer_create(20);
-	return info_internal_buffer_vprintf(drawcall->content, format, args);
-}
-
-bool info_internal_drawcall_printf(List drawcall_list, enum info_internal_drawcall_content_stream stream, ANSI ansi, const info_char *format, ...)
-{
-	va_list args;
-	va_start(args, format);
-	bool ret = info_internal_drawcall_vprintf(drawcall_list, stream, ansi, format, args);
-	va_end(args);
-	return ret;
-}
-
 void info_printf(const info_char *format, ...)
 {
 	if(init)

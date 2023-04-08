@@ -28,55 +28,12 @@ bool info_internal_buffer_append(info_buffer buf, const info_char *str, size_t l
         buf->cursor+=length;
         return false;
 }
-bool info_internal_buffer_consume(info_buffer buffer, info_buffer co)
+bool info_internal_buffer_append_buf(info_buffer buffer, info_buffer co)
 {
         bool res = info_internal_buffer_append(buffer, co->str, co->cursor);
-        info_internal_buffer_free(co);
         return res;
 }
 
-bool info_internal_buffer_vprintf(info_buffer buffer, const info_char *format, va_list args)
-{
-        if(!format)
-                INTERNAL("printf format is NULL")
-        int res;
-        va_list arg_tmp;
-#ifdef INFO_WIDE
-
-        info_internal_buffer_reserve(buffer, 100);
-        va_copy(arg_tmp, args);
-        while((res=vswprintf(buffer->str+buffer->cursor, buffer->size-buffer->cursor, format, args))==-1)
-        {
-                va_copy(arg_tmp, args);
-                info_internal_buffer_reserve(buffer, buffer->size*2);
-        }
-
-        buffer->cursor+=res;
-        return false;
-#else
-        va_copy(arg_tmp, args);
-
-        int length = vsnprintf(buffer->str+buffer->cursor ,0, format, arg_tmp);
-        va_end(arg_tmp);
-        if(length<0)
-                INTERNAL("vsnprintf error: %d", length)
-
-        info_internal_buffer_reserve(buffer, buffer->cursor+length+1);
-
-        res = vsnprintf(buffer->str+buffer->cursor, length+1, format, args);
-        buffer->cursor+=length;
-        return res!=length;
-#endif
-
-}
-bool info_internal_buffer_printf(info_buffer buffer, const info_char *format, ...)
-{
-        va_list args;
-        va_start(args, format);
-        bool res = info_internal_buffer_vprintf(buffer, format, args);
-        va_end(args);
-        return res;
-}
 
 bool info_internal_buffer_reserve(info_buffer buf, size_t size)
 {
