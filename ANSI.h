@@ -6,7 +6,7 @@ struct info_ANSI_color
         uint8_t r,g,b;
 };
 
-#define INFO_ANSI_COLOR(R,G,B) (struct info_ANSI_color){R,G,B}
+#define INFO_ANSI_COLOR(R,G,B) (const struct info_ANSI_color){R,G,B}
 
 
 struct info_ANSI
@@ -25,5 +25,5 @@ struct info_ANSI
 
 typedef struct info_ANSI ANSI;
 
-#define INFO_ANSI_normal_color(R,G,B) (struct info_ANSI){0,0,0,0,0,0, {R,G,B}, { 0,0,0 }}
+#define INFO_ANSI_normal_color(R,G,B) (const struct info_ANSI){0,0,0,0,0,0, {R,G,B}, { 0,0,0 }}
 

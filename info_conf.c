@@ -1,7 +1,7 @@
 #include "info_internal.h"
 #include "format.h"
 //
-#define INFO_GENERATE_ANSI(ENUM) [ENUM] = (struct info_ANSI){1},
+#define INFO_GENERATE_ANSI(ENUM) [ENUM] = (const struct info_ANSI){1},
 #define INFO_GENERATE_STRING(STRING) [STRING] = INFO_STR(#STRING),
 #define INFO_GENERATE_FORMAT(STRING) [STRING] = {NULL,NULL},
 //
