@@ -59,7 +59,7 @@ void info_mode(struct info_format format);
 
 // MARCOS
 #define PRINT(fmt,...) info_printf(INFO_STR(fmt), ##__VA_ARGS__);
-#define INFO_INTERNAL_MSG_SETUP(type) {info_Msg_origin((struct info_Origin){INFO_STR_X(__FILE__), __LINE__, __FUNCTION__}); info_Msg_type(type);}
+#define INFO_INTERNAL_MSG_SETUP(type) {info_Msg_origin((struct info_Origin){INFO_STR_X(__FILE__), __LINE__, __func__}); info_Msg_type(type);}
 #define INFO_INTERNAL_MSG(type, ...) {info_release(); INFO_INTERNAL_MSG_SETUP(type); PRINT(__VA_ARGS__)}
 #define INFO(...) INFO_INTERNAL_MSG(INFO, __VA_ARGS__)
 #define ERROR(...) INFO_INTERNAL_MSG(ERROR, __VA_ARGS__)

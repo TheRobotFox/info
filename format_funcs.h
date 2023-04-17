@@ -12,7 +12,7 @@ struct info_format_function
 
 enum info_format_function_arg_type
 {
-        BUFFER,
+        STRING,
         INT
 };
 
@@ -20,7 +20,7 @@ struct info_format_function_arg
 {
         enum info_format_function_arg_type type;
         union {
-                info_buffer buf;
+                List buf;
                 int num;
         };
 };
@@ -28,14 +28,14 @@ struct info_format_function_arg
 
 struct info_internal_format_substring
 {
-        info_buffer name;
+        List name;
         size_t offset_start, offset_end;
 };
 
 struct formatting_info
 {
         info_Msg current;
-        info_buffer buffer;
+        List buffer;
         //size_t line;
         size_t start_offset;
         size_t func_offset;

@@ -2,6 +2,8 @@
 #include <string.h>
 #include <stdio.h>
 
+IMPLEMENT_LIST(struct info_internal_format_substring, name)
+
 static int util_string_next(info_char c, const info_char * str, size_t len, size_t offset)
 {
         for(int i=offset; i<len; i++)
@@ -50,21 +52,22 @@ static struct info_format_function* info_internal_format_function_by_shortname(i
         return 0;
 }
 
-static bool info_internal_format_function_execute(struct info_format_function *f, List args, info_buffer out, bool ANSI)
+static bool info_internal_format_function_execute(struct info_format_function *f, List args, List out, bool ANSI)
 {
         // execute func
         List draw = f->func(args);
         if(!draw)
                 return true;
         // handle return drawcall list
-        for(struct info_internal_drawcall *start=List_start(draw),
+        for(struct info_drawcall *start=List_start(draw),
                         *end = List_end(draw); start!=end; start++)
         {
                 if(ANSI)
                         info_internal_ANSI_switch(out, start->ansi);
 
-                // append and free buffer
-                info_internal_buffer_consume(out, start->content);
+                List_concat(out, start->text);
+                List_free(start->text);
+
         }
         //printf("%s -> %d\n", f->name, info_internal_buffer_tell(out));
         List_free(draw);
@@ -73,7 +76,7 @@ static bool info_internal_format_function_execute(struct info_format_function *f
 
 static bool info_internal_format_arg_read(List args, enum info_format_function_arg_type type, const info_char *str, size_t len)
 {
-        info_buffer tmp = info_internal_buffer_create(len);
+        List tmp = info_buffer_create(len);
         if(info_internal_format_str_eval(str, len, false, tmp))
                 return true;
         struct info_format_function_arg arg={0};
@@ -81,31 +84,31 @@ static bool info_internal_format_arg_read(List args, enum info_format_function_a
         //fwrite(info_internal_buffer_str(tmp), 1 ,info_internal_buffer_tell(tmp), stdout); putchar('\n');
         switch(type)
         {
-                case BUFFER:
+                case STRING:
                         arg.buf=tmp;
                         break;
                 case INT:
-                        arg.num=STRTOL(info_internal_buffer_str(tmp), NULL, 10);
-                        info_internal_buffer_free(tmp);
+                        arg.num=STRTOL(info_buffer_str(tmp), NULL, 10);
+                        List_free(tmp);
                         break;
                 default:
-                        info_internal_buffer_free(tmp);
+                        List_free(tmp);
                         return true;
         }
-        return !List_append(args, &arg);
+        return !List_push(args, &arg);
 }
 
 // very ugly
-static size_t info_internal_format_solve(const info_char *str, size_t len, info_buffer buffer, bool ANSI)
+static size_t info_internal_format_solve(const info_char *str, size_t len, List buffer, bool ANSI)
 {
         size_t ret=0;
-        List args = List_create(sizeof(struct info_format_function_arg));
+        List args = LIST_create(struct info_format_function_arg);
         struct info_format_function *func;
 start:
         switch(*str)
         {
         case INFO_STR('%'):       // escape
-                info_internal_buffer_append(buffer, INFO_STR("%"), 1);
+                List_append(buffer, INFO_STR("%"), 1);
                 ret++;
                 break;
         case INFO_STR('<'):       // func by name
@@ -170,7 +173,7 @@ start:
                         }
                         ret+=end+1;
 
-                        if(info_internal_format_arg_read(args, BUFFER, str+1, end-1)){
+                        if(info_internal_format_arg_read(args, STRING, str+1, end-1)){
                                 ret=-1;
                                 break;
                         }
@@ -194,8 +197,8 @@ start:
                                             *end = List_end(args);
                                             start!=end; start++)
         {
-                if(start->type==BUFFER)
-                        info_internal_buffer_free(start->buf);
+                if(start->type==STRING)
+                        List_free(start->buf);
         }
         List_free(args);
 
@@ -204,7 +207,7 @@ start:
 
 struct formatting_info formatting_info={0};
 
-bool info_internal_format_str_eval(const info_char *format, size_t len, bool ANSI, info_buffer out)
+bool info_internal_format_str_eval(const info_char *format, size_t len, bool ANSI, List out)
 {
 
         int i=0, res;
@@ -216,15 +219,15 @@ bool info_internal_format_str_eval(const info_char *format, size_t len, bool ANS
                 }
 start:
 
-                info_internal_buffer_append(out, format+i, res);
+                List_append(out, format+i, res);
                 i+=res;
                 if(i==len-1)
                         INTERNAL("trailing %%")
                 i++;
 
                 if((res=info_internal_format_solve(format+i,len-i, out, ANSI))<0){
-                        INTERNAL_ERROR("parsing format string failed at %d", info_internal_buffer_tell(formatting_info.buffer))
-                        info_internal_buffer_append(out, INFO_STR("%"), 1);
+                        INTERNAL_ERROR("parsing format string failed at %d", List_size(formatting_info.buffer))
+                        List_append(out, INFO_STR("%"), 1);
                         res = util_string_next(INFO_STR('%'), format, len, i);
                         if(res<0)
                                 break;
@@ -232,24 +235,22 @@ start:
                 }
                 i+=res;
         }
-        info_internal_buffer_append(out, format+i, len-i);
+        List_append(out, format+i, len-i);
 
         return false;
 }
 
-void info_format_substrings_clear(List substrings)
+void info_format_substrings_clear(LIST(substring) substrings)
 {
         // free substrings
-        for(struct info_internal_format_substring *start = List_start(substrings),
-                                                *end = List_end(substrings); start!=end; start++)
-                info_internal_buffer_free(start->name);
+        LIST_forward_m(struct info_internal_format_substring, name)(substrings, List_free);
         List_clear(substrings);
 }
 
-bool info_format_replace(info_buffer in, info_char from, const info_char *to, size_t len, bool expand,  bool ANSI_support, info_buffer out)
+bool info_format_replace(List in, info_char from, const info_char *to, size_t len, bool expand,  bool ANSI_support, List out)
 {
-        const info_char *str = info_internal_buffer_str(in);
-        size_t length=info_internal_buffer_tell(in);
+        const info_char *str = info_buffer_str(in);
+        size_t length = List_size(in);
         int start = 0, next;
 
         if(expand)
@@ -257,7 +258,7 @@ bool info_format_replace(info_buffer in, info_char from, const info_char *to, si
 
         while((next=util_string_next(from, str, length, start))>0)
         {
-                info_internal_buffer_append(out, str+start, next);
+                List_append(out, str+start, next);
 
                 if(expand){
                         if(info_internal_format_str_eval(to, len, ANSI_support, out))
@@ -267,17 +268,17 @@ bool info_format_replace(info_buffer in, info_char from, const info_char *to, si
                                 return true;
                         }
                 } else{
-                        info_internal_buffer_append(out, to, len);
+                        List_append(out, to, len);
                 }
 
                 start+=next+1;
         }
-        info_internal_buffer_append(out, str+start, length-start);
+        List_append(out, str+start, length-start);
 
         return false;
 }
 
-struct info_format info_format_select(struct info_format a, struct info_format b)
+struct info_format info_format_overlay(struct info_format a, struct info_format b)
 {
         if(b.format)
                 a.format=b.format;
@@ -286,7 +287,8 @@ struct info_format info_format_select(struct info_format a, struct info_format b
         return a;
 }
 
-bool info_format_Msg_format(info_Msg msg, struct info_format format, bool ANSI, info_buffer out)
+
+bool info_format_message_compile(info_Msg msg, struct info_format format, bool ANSI, List out)
 {
 
         const info_char *newline_str;
@@ -299,7 +301,7 @@ bool info_format_Msg_format(info_Msg msg, struct info_format format, bool ANSI, 
         if(!format_str)
                 format_str=INFO_STR("%c");
 
-        info_buffer initial = info_internal_buffer_create(STRLEN(format_str));
+        List initial = info_buffer_create(STRLEN(format_str));
 
         formatting_info.substrings = List_create(sizeof(struct info_internal_format_substring));
         formatting_info.current = msg;
@@ -310,12 +312,12 @@ bool info_format_Msg_format(info_Msg msg, struct info_format format, bool ANSI, 
 
         info_format_replace(initial, INFO_STR('\n'), newline_str, STRLEN(newline_str), true, ANSI, out);
 
-        info_buffer tmp = info_internal_buffer_create(info_internal_buffer_tell(initial));
+        List tmp = info_buffer_create(List_size(initial));
 
-        info_internal_buffer_free(initial);
+        List_free(initial);
 
         info_format_replace(tmp, INFO_STR('\t'), indent, STRLEN(indent), false, ANSI, tmp);
-        info_internal_buffer_free(tmp);
+        List_free(tmp);
 
         info_format_substrings_clear(formatting_info.substrings);
         List_free(formatting_info.substrings);

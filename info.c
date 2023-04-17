@@ -93,14 +93,8 @@ void info_release(void)
 		return;
 
 	info_internal_stream_output(&output, &message);
-	for(struct info_internal_drawcall* start = List_start(message.drawcall_list),
-																	 * end = List_end(message.drawcall_list);
-																	 start!=end; start++)
-	{
-		info_internal_buffer_free(start->content);
-	}
-	List_free(message.drawcall_list);
-	message.drawcall_list=NULL;
+	info_drawcall_list_free(message.d);
+	message.d=NULL;
 	message.current=(ANSI){1};
 	message.type=ZERO;
 	col_set=false;
@@ -129,12 +123,12 @@ void info_printf(const info_char *format, ...)
 		//info_color(info_ANSI[message.type]);
 		message.start=message.current;
 	}
-	if(!message.drawcall_list)
-		message.drawcall_list = List_create(sizeof(struct info_internal_drawcall));
+	if(!message.d)
+		message.d= info_drawcall_list_create();
 
 	va_list args;
 	va_start(args, format);
-	info_internal_drawcall_vprintf(message.drawcall_list, TEXT, message.current, format, args);
+	info_drawcall_vprintf(message.d, message.current, format, args);
 	if(!hold)
 		info_release();
 }
