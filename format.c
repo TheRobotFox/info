@@ -3,6 +3,7 @@
 #include <stdio.h>
 
 IMPLEMENT_LIST(struct info_internal_format_substring, name)
+IMPLEMENT_LIST(info_char)
 
 static int util_string_next(info_char c, const info_char * str, size_t len, size_t offset)
 {
@@ -27,6 +28,28 @@ static int util_closing(info_char o, info_char c, const info_char *str, size_t l
         if(depth)
                 return -1;
         return i-offset-1;
+}
+
+size_t util_get_pos(const info_char *a, size_t length)
+{
+        size_t count = 0;
+        bool skip=false;
+        for(size_t i=0; i<length; i++){
+                if(a[i]==INFO_STR('\033')) skip=true;
+
+                if(skip || a[i]==0){
+                        if(a[i]=='m') skip=false;
+                }else{
+                        if(a[i]==INFO_STR('\n')){
+                                count=0;
+                        }else if(a[i]==INFO_STR('\t'))
+                                count+=tab_width-count%tab_width;
+                        else
+                                count++;
+                }
+        }
+
+        return count;
 }
 
 
@@ -145,7 +168,7 @@ start:
                         }
 
                         int next, offset=1;
-                        while((next = util_string_next(',', str, len, offset))!=-1 && offset<len){
+                        while((next = util_string_next(',', str, end, offset))!=-1 && offset<len){
                                 if(info_internal_format_arg_read(args, INT, str+offset, next)){
                                         ret=-1;
                                         break;
@@ -288,16 +311,80 @@ struct info_format info_format_overlay(struct info_format a, struct info_format 
 }
 
 
-bool info_format_message_compile(info_Msg msg, struct info_format format, bool ANSI, List out)
+bool info_filter_newline(List in, bool ANSI, List out)
 {
-
-        const info_char *newline_str;
-        const info_char *format_str;
-
-        newline_str = format.newline;
-        format_str = format.format;
+        const info_char *newline_str = formatting_info.format->newline;
         if(!newline_str)
                 newline_str=INFO_STR("\n");
+        return info_format_replace(in, INFO_STR('\n'), newline_str, STRLEN(newline_str), true, ANSI, out);
+}
+
+bool info_filter_expand_tabs(List in, bool ANSI, List out)
+{
+        size_t end=List_size(in);
+        const char *str = info_buffer_str(in);
+        for(size_t i=0; i<end; i++)
+        {
+                if(str[i]=='\t'){
+                        for(int i=0; i< tab_width; i++)
+                                LIST_push(info_char)(out, ' ');
+                }else{
+                                LIST_push(info_char)(out, str[i]);
+                }
+        }
+        return false;
+}
+
+void info_generate_whitespace(size_t size, List out)
+{
+        if(size>3){
+                LIST_push(info_char)(out, ' ');
+                LIST_push(info_char)(out, '<');
+
+                for(size_t i=0; i<size-4; i++)
+                        LIST_push(info_char)(out, '-');
+
+                LIST_push(info_char)(out, '>');
+                LIST_push(info_char)(out, ' ');
+        }else{
+                LIST_push(info_char)(out, '<');
+                LIST_push(info_char)(out, '>');
+        }
+}
+
+bool info_filter_convert_whitespaces(List in, bool ANSI, List out)
+{
+        size_t i=0, end=List_size(in);
+        const char *str = info_buffer_str(in);
+        while(i<end-1)
+        {
+                // if doublespace begin conversion
+                if(str[i]==' ' && str[i+1]==' ')
+                {
+                        size_t count=0;
+                        for(; str[i]==' ' && i<end; i++)
+                                count++;
+                        info_generate_whitespace(count, out);
+                }
+                LIST_push(info_char)(out, str[i]);
+                i++;
+        }
+        return false;
+}
+bool (*filters[])(List, bool, List) = {
+        info_filter_newline,
+        info_filter_expand_tabs,
+        info_filter_convert_whitespaces,
+};
+size_t filter_count = sizeof(filters)/sizeof(*filters);
+
+
+
+bool info_format_message_compile(info_Msg msg, struct info_format format, bool ANSI, List out)
+{
+        const info_char *format_str;
+
+        format_str = format.format;
         if(!format_str)
                 format_str=INFO_STR("%c");
 
@@ -307,16 +394,28 @@ bool info_format_message_compile(info_Msg msg, struct info_format format, bool A
         formatting_info.current = msg;
         formatting_info.buffer = initial;
         formatting_info.start_offset=0;
+        formatting_info.format=&format;
 
         info_internal_format_str_eval(format_str, STRLEN(format_str), ANSI, initial);
 
-        info_format_replace(initial, INFO_STR('\n'), newline_str, STRLEN(newline_str), true, ANSI, out);
-
         List tmp = info_buffer_create(List_size(initial));
+        void *t;
 
+        // apply filters
+        for(int i=0; i<filter_count; i++)
+        {
+                // clear tmp buffer
+                List_clear(tmp);
+
+                filters[i](initial, ANSI, tmp);
+                // swap buffers
+                t=tmp;
+                tmp=initial;
+                initial=t;
+        }
+
+        List_concat(out, initial);
         List_free(initial);
-
-        info_format_replace(tmp, INFO_STR('\t'), indent, STRLEN(indent), false, ANSI, tmp);
         List_free(tmp);
 
         info_format_substrings_clear(formatting_info.substrings);

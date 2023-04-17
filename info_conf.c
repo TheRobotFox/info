@@ -6,9 +6,9 @@
 #define INFO_GENERATE_FORMAT(STRING) [STRING] = {NULL,NULL},
 //
 //
-//
-#define FORMAT_DEFAULT INFO_STR("%([%t][%i] %d%{%f}[200,200,120]a: %)%<content>")
-#define NEWLINE_DEFAULT INFO_STR("\n%{%g}w")
+//%{%F}[200,100,200]a/
+#define FORMAT_DEFAULT INFO_STR("[%t][%i] %d%{%f}[200,200,120]a: %b%c")
+#define NEWLINE_DEFAULT INFO_STR("\n%{%r}w")
 //
 #define FORMAT_STRUCTURED INFO_STR("%s%c")
 #define NEWLINE_STRUCTURED INFO_STR("\n%d")
@@ -47,10 +47,10 @@ info_formats info_internal_formats = {
 // Message prefix ANSI
 ANSI ansi_prefix = {1};
 //
-const info_char *indent = INFO_STR("    ");
+const size_t tab_width = 4;
 //
 // example formats
 const struct info_format format_default = { FORMAT_DEFAULT, NEWLINE_DEFAULT};
 const struct info_format format_structured = { FORMAT_STRUCTURED, NEWLINE_STRUCTURED};
 //
-struct info_format format_current = format_default;
+struct info_format format_current = { FORMAT_DEFAULT, NEWLINE_DEFAULT};

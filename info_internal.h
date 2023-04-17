@@ -23,5 +23,5 @@ extern const ANSI info_internal_ANSI[];
 extern info_formats info_internal_formats;
 extern struct info_format format_current;
 extern ANSI ansi_prefix;
-extern const info_char *indent;
+extern const size_t tab_width;
 
