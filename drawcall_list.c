@@ -1,4 +1,5 @@
 #include "drawcall_list.h"
+#include "List/List.h"
 #include "stream_internal.h"
 #include <stddef.h>
 #include <time.h>
@@ -7,14 +8,13 @@
 IMPLEMENT_LIST(struct info_drawcall, text)
 
 
-struct drawcall_iterator
-{
-        drawcall_list source;
-        size_t content_index;
-        size_t content_size;
-        bool valid;
-        List current;
-        size_t current_index;
+struct drawcall_iterator {
+  drawcall_list source;
+  size_t content_index;
+  size_t content_size;
+  bool valid;
+  List current;
+  size_t current_index;
 };
 
 drawcall_list info_drawcall_list_create()
@@ -179,7 +179,7 @@ void info_drawcall_iterator_free(drawcall_iterator it)
 
 void info_drawcall_list_free(drawcall_list l)
 {
-        LIST_forward_m(struct info_drawcall, text)(l, List_free);
+        LIST_LOOP(struct info_drawcall, l, e){List_free(e->text);}
         List_free(l);
 }
 bool info_drawcall_list_copy(drawcall_list out, drawcall_iterator start, drawcall_iterator end)

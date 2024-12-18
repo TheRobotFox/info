@@ -266,7 +266,7 @@ start:
 void info_format_substrings_clear(LIST(substring) substrings)
 {
         // free substrings
-        LIST_forward_m(struct info_internal_format_substring, name)(substrings, List_free);
+        LIST_LOOP(struct info_internal_format_substring, substrings, e){List_free(e->name);}
         List_clear(substrings);
 }
 

@@ -1,3 +1,4 @@
+#include "ANSI.h"
 #include "info_internal.h"
 #include "stream_internal.h"
 #include <stddef.h>
@@ -5,7 +6,8 @@
 #include <locale.h>
 
 
-struct info_internal_Msg message = { ZERO, {0}, NULL, 0, {1}};
+struct info_internal_Msg message = { ZERO, {0}, NULL, 0, INFO_ANSI_normal_c, INFO_ANSI_normal_c};
+
 bool hold=false, holding=false, col_set=false, init=true;
 struct info_internal_stream output = {0};
 
@@ -95,7 +97,7 @@ void info_release(void)
 	info_internal_stream_output(&output, &message);
 	info_drawcall_list_free(message.d);
 	message.d=NULL;
-	message.current=(ANSI){1};
+	message.current=INFO_ANSI_normal;
 	message.type=ZERO;
 	col_set=false;
 	hold=false;

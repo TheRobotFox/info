@@ -7,11 +7,11 @@
 //
 // define your types here
 #define INFO_FOREACH_FUNC(FUNC) \
-        FUNC(INFO)     		    	\
-        FUNC(SUCCESS)	        	\
-        FUNC(ERROR)      	    	\
-        FUNC(SEG)     	      	\
-				FUNC(FATAL) 						\
+        FUNC(INFO)              \
+        FUNC(SUCCESS)           \
+        FUNC(ERROR)             \
+        FUNC(SEG)               \
+        FUNC(FATAL)
 //
 enum INFO_TYPE
 {

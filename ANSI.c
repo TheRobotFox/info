@@ -1,22 +1,24 @@
+#include "ANSI.h"
 #include "ANSI_internal.h"
 
 typedef uint8_t ANSI_rule[3];
 
 
-static char *info_internal_ANSI_mode_apply(int8_t a, int8_t b)
-{
-        if(a==b)
-                return 0;
+/* static char *info_internal_ANSI_mode_apply(int8_t a, int8_t b) */
+/* { */
+/*         if(a==b) */
+/*                 return 0; */
 
-}
+/* } */
 
-static bool info_internal_ANSI_color_cmp(struct info_ANSI_color a, struct info_ANSI_color b)
-{
-        return a.r==b.r && a.g==b.g && a.b==b.b;
-}
+/* static bool info_internal_ANSI_color_cmp(struct info_ANSI_color a, struct info_ANSI_color b) */
+/* { */
+/*         return a.r==b.r && a.g==b.g && a.b==b.b; */
+/* } */
 
-ANSI current = {1};
-ANSI normal = {1};
+ANSI current = {1,0,0,0,0,0, {0,0,0}, { 0,0,0 }};
+ANSI normal = {1,0,0,0,0,0, {0,0,0}, { 0,0,0 }};
+
 void info_internal_ANSI_stream_reset(FILE *f)
 {
         FPUTS(INFO_STR("\033[0m"), f);

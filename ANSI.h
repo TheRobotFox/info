@@ -25,5 +25,8 @@ struct info_ANSI
 
 typedef struct info_ANSI ANSI;
 
-#define INFO_ANSI_normal_color(R,G,B) (const struct info_ANSI){0,0,0,0,0,0, {R,G,B}, { 0,0,0 }}
+#define INFO_ANSI_normal_color_c(R,G,B) {0,0,0,0,0,0, {R,G,B}, { 0,0,0 }}
+#define INFO_ANSI_normal_color(R,G,B) (const struct info_ANSI)INFO_ANSI_normal_color_c(R,G,B)
 
+#define INFO_ANSI_normal_c INFO_ANSI_normal_color_c(175,175,175)
+#define INFO_ANSI_normal INFO_ANSI_normal_color(175,175,175)

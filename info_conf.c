@@ -1,7 +1,8 @@
+#include "ANSI.h"
 #include "info_internal.h"
 #include "format.h"
 //
-#define INFO_GENERATE_ANSI(ENUM) [ENUM] = (const struct info_ANSI){1},
+#define INFO_GENERATE_ANSI(ENUM) [ENUM] = INFO_ANSI_normal_c,
 #define INFO_GENERATE_STRING(STRING) [STRING] = INFO_STR(#STRING),
 #define INFO_GENERATE_FORMAT(STRING) [STRING] = {NULL,NULL},
 //
@@ -17,14 +18,14 @@
 // set default colors for types
 const ANSI info_internal_ANSI[] = {
 	// set defaults
-	INFO_FOREACH_FUNC(INFO_GENERATE_ANSI)
-	[ZERO] = INFO_ANSI_normal_color(255,255,255),
+	/* INFO_FOREACH_FUNC(INFO_GENERATE_ANSI) */
+	[ZERO] = INFO_ANSI_normal_c,
 //
-	[INFO] = INFO_ANSI_normal_color(0, 200, 255),
-	[SEG] = INFO_ANSI_normal_color(200, 255, 0),
-	[ERROR] = INFO_ANSI_normal_color(200, 70, 70),
-	[FATAL] = INFO_ANSI_normal_color(255, 0, 0),
-	[SUCCESS] = INFO_ANSI_normal_color(0, 255, 0),
+	[INFO] = INFO_ANSI_normal_color_c(0, 200, 255),
+	[SEG] = INFO_ANSI_normal_color_c(200, 255, 0),
+	[ERROR] = INFO_ANSI_normal_color_c(225, 100, 100),
+	[FATAL] = INFO_ANSI_normal_color_c(255, 0, 0),
+	[SUCCESS] = INFO_ANSI_normal_color_c(0, 255, 0),
 };
 //
 // set type names
@@ -45,7 +46,7 @@ info_formats info_internal_formats = {
 };
 //
 // Message prefix ANSI
-ANSI ansi_prefix = {1};
+ANSI ansi_prefix = INFO_ANSI_normal_c;
 //
 const size_t tab_width = 4;
 //
