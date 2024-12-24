@@ -1,7 +1,7 @@
 #pragma once
 #include <stdint.h>
 
-struct info_ANSI_color
+struct info_color
 {
         uint8_t r,g,b;
 };

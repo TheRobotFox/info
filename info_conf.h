@@ -1,31 +1,6 @@
-#pragma once
-// configure info
-//
-// use wide characters
-//#define INFO_WIDE
-//
-//
-// define your types here
-#define INFO_FOREACH_FUNC(FUNC) \
-        FUNC(INFO)              \
-        FUNC(SUCCESS)           \
-        FUNC(ERROR)             \
-        FUNC(SEG)               \
-        FUNC(FATAL)
-//
-enum INFO_TYPE
-{
-	ZERO,
-	INFO_FOREACH_FUNC(INFO_GENERATE_ENUM)
-//
+#ifndef INFO_CONF_H_
+#define INFO_CONF_H_
 
-//
-	INFO_COUNT
-};
-//
-//
-//
-//
-//
-//
-//
+#define INFO_REGISTERS 10
+
+#endif // INFO_CONF_H_

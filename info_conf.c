@@ -2,9 +2,6 @@
 #include "info_internal.h"
 #include "format.h"
 //
-#define INFO_GENERATE_ANSI(ENUM) [ENUM] = INFO_ANSI_normal_c,
-#define INFO_GENERATE_STRING(STRING) [STRING] = INFO_STR(#STRING),
-#define INFO_GENERATE_FORMAT(STRING) [STRING] = {NULL,NULL},
 //
 //
 //%{%F}[200,100,200]a/

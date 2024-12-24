@@ -1,15 +1,22 @@
 #pragma once
 #include "List/List.h"
 
-typedef List drawcall_list;
-typedef struct drawcall_iterator *drawcall_iterator;
-
 #include "info_internal.h"
-struct info_drawcall
+enum info_DrawCall_Type
 {
-        ANSI ansi;
-        List text;
-        int num;
+        FCOLOR,
+        BCOLOR,
+        STYLE,
+        TEXT
+};
+struct info_DrawCall
+{
+        enum info_DrawCall_Type type;
+        union{
+                struct info_color color;
+
+                const char *text;
+        }
 };
 
 
