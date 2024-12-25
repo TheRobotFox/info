@@ -15,8 +15,8 @@
 #define _LIST_IMPL(T,ALIAS, ...)                                       \
 struct List_##ALIAS                                                    \
 {                                                                      \
-        struct List_##ALIAS *next;                                     \
         T val;                                                         \
+        struct List_##ALIAS *next;                                     \
 };                                                                     \
 T* List_##ALIAS##_insert(struct List_##ALIAS **node, T val)            \
 {                                                                      \

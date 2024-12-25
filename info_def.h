@@ -4,7 +4,6 @@
 #include "ANSI.h"
 #include "Map.h"
 #include "arena.h"
-#include "info_conf.h"
 #include "info_char.h"
 #include "info_string.h"
 #include <stdio.h>
@@ -18,13 +17,18 @@ LIST_INC(struct info_DrawCall, DrawCall);
 struct info_Arg {
     enum{
         NUMBER,
-        STRING
+        STRING,
+        DRAWTREE
     } kind;
     union{
         int num;
-        const info_char *str;
+        struct info_Slice str;
+        struct info_DrawCall *draw_calls;
     };
 };
+
+LIST_INC(struct info_Arg, arg);
+
 struct info_Var {
     const char *name;
     struct info_Arg arg;
@@ -35,7 +39,7 @@ struct info_Msg;
 
 struct info_DrawCall {
     enum {
-        STYLE,
+        STYLED,
         TEXT,
         CALL,
     } kind;
@@ -43,18 +47,16 @@ struct info_DrawCall {
         struct {
             ANSI style;
             struct List_DrawCall *sub;
-        } style;
+        } styled;
         const info_char *text;
         struct {
             struct List_DrawCall*
-            (*func)(struct info_Arg *,
-                    size_t,
+            (*func)(List_arg args,
                     List_vars vars,
                     struct info_Arena *arena);
 
-            struct info_Arg *args;
-            size_t argc;
-        };
+            struct List_arg* args;
+        } call;
     };
 };
 
@@ -64,12 +66,13 @@ struct info_Origin
 	size_t line;
 	const char *func;
 };
+
 struct info_Msg{
 	FILE *destination;
     List_DrawCall format;
 	struct info_Origin origin;
     struct List_vars *vars;
-    struct info_Arena arena;
+    info_Arena arena;
 };
 
 

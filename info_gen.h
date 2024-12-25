@@ -145,8 +145,8 @@
 #define _INFO_IF2_0(t,...) __VA_ARGS__
 
 #define _INFO_CHECK_FALSE(x, ...) a,b
-#define _INFO_RECURSE_IND() _INFO_RECURSE_
-#define _INFO_RECURSE_(G, a, ...) _INFO_IF(_INFO_IS_END(a))(_END, (_INFO_CAT(G,a), _INFO_DEFER4(_INFO_RECURSE_IND)()(G, __VA_ARGS__)))
-#define _INFO_RECURSE(G, ...) _INFO_RECURSE_(G, __VA_ARGS__, _END,)
+#define _INFO_LL_IND() _INFO_LL_
+#define _INFO_LL_(T,G, a, ...) _INFO_IF(_INFO_IS_END(a))(NULL, (T[]){_INFO_CAT(G,a), _INFO_DEFER2(_INFO_LL_IND)()(T,G, __VA_ARGS__)})
+#define _INFO_LL(G, ...) _INFO_LL_(G, __VA_ARGS__, _END,)
 
 #endif // INFO_GEN_H_
