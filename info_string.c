@@ -1,70 +1,84 @@
 #include "info_string.h"
-#include "arena.h"
-#include "info_internal.h"
+#include "info_char.h"
 #include <stdarg.h>
 #include <stdlib.h>
+#include <string.h>
 
-info_String info_string_create(info_Arena arena, size_t cap)
+info_String info_string_create(size_t cap)
 {
     return (info_String){
-    .data = {
-        .str = info_arena_alloc(arena, cap*sizeof(info_char)),
-        .len = 0
-    },
+    .str = malloc(cap*sizeof(info_char)),
+    .len = 0,
     .cap = cap
     };
 }
 
-int info_string_realloc(info_Arena arena, info_String *s, size_t cap)
+int info_string_realloc(info_String *s, size_t cap)
 {
-    s->data.str = info_arena_realloc(arena, s->data.str, s->cap, cap);
+    s->str = realloc(s->str, cap);
     s->cap=cap;
-    return !s->data.str;
+    return !s->str;
 }
 
-int info_string_vprintf(info_Arena arena, info_String *str, const info_char *format, va_list args)
+int info_string_vprintf(info_String *str, const info_char *format, va_list args)
 {
         if(!format)
-                INTERNAL("printf format is NULL")
+            return -1;
         int res;
         va_list arg_tmp;
 
 #ifdef INFO_WIDE
 
         size_t cap = str->cap;
-        while((res=vswprintf(str->data.str+str->data.len, str->cap-str->data.len, format, args))==-1) {
+        while((res=vswprintf(str->str+str->len, str->cap-str->len, format, args))==-1) {
             cap*=2;
-            if(info_string_realloc(arena, str, cap))
-                INTERNAL("Allocation Failed!")
+            if(info_string_realloc(str, cap))
+                return -1;
             va_copy(arg_tmp, args);
         }
-        str->data.len += res;
+        str->len += res;
 
         /* if(info_string_realloc(&s, s.len+res)) */
         /*     INTERNAL("Allocation Failed!") */
 
-        return 0;
+        return res;
 #else
         va_copy(arg_tmp, args);
 
-        int length = vsnprintf(NULL ,0, format, arg_tmp)+1;
+        int length = vsnprintf(NULL ,0, format, arg_tmp);
         va_end(arg_tmp);
         if(length<0)
-                INTERNAL("vsnprintf error: %d", length);
+            return -1;
 
-        info_string_realloc(arena, str, str->data.len+length);
+        info_string_realloc(str, str->len+length+1);
 
-        res = vsnprintf(str->data.str+str->data.len, length, format, args);
-        return res!=length;
+        res = vsnprintf(str->str+str->len, length+1, format, args);
+        str->len += length;
+        return res;
 #endif
 
 }
 
-int info_string_printf(info_Arena arena, info_String *str, const info_char *format, ...)
+int info_string_printf(info_String *str, const info_char *format, ...)
 {
         va_list args;
         va_start(args, format);
-        int res = info_string_vprintf(arena, str, format, args);
+        int res = info_string_vprintf(str, format, args);
         va_end(args);
         return res;
+}
+
+int info_string_puts(info_String *str, const info_char *s, size_t len)
+{
+    if(str->len+len >= str->cap) info_string_realloc(str, str->len+len+1);
+    memcpy(str->str+str->len*sizeof(info_char), s, len*sizeof(info_char));
+    str->len+=len;
+    str->str[str->len] = 0;
+    return 0;
+
+}
+
+size_t info_string_length(info_String *str)
+{
+    return str->len;
 }

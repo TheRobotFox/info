@@ -6,9 +6,11 @@
 
 #include "stdlib.h"
 
-#define _LIST_INC(T, ALIAS,...)                               \
-        struct List_##ALIAS;                                  \
-        typedef struct List_##ALIAS** List_##ALIAS;            \
+#define _LIST_INC(T, ALIAS,...)                                      \
+        struct List_##ALIAS;                                         \
+        typedef struct List_##ALIAS** List_##ALIAS;                  \
+        T* List_##ALIAS##_get(struct List_##ALIAS **node);           \
+        struct List_##ALIAS* List_##ALIAS##_next(struct List_##ALIAS **node);           \
         T* List_##ALIAS##_insert(struct List_##ALIAS **node, T val); \
         T List_##ALIAS##_pop(struct List_##ALIAS **node);
 
@@ -18,11 +20,20 @@ struct List_##ALIAS                                                    \
         T val;                                                         \
         struct List_##ALIAS *next;                                     \
 };                                                                     \
+struct List_##ALIAS* List_##ALIAS##_next(struct List_##ALIAS **node)   \
+{                                                                      \
+        if(!*node) return NULL;                                             \
+        return (*node)->next;                                               \
+}                                                                      \
+T* List_##ALIAS##_get(struct List_##ALIAS **node){                     \
+        if((*node)) return &(*node)->val;                                   \
+        return NULL;                                                        \
+}                                                                      \
 T* List_##ALIAS##_insert(struct List_##ALIAS **node, T val)            \
 {                                                                      \
         struct List_##ALIAS* res = malloc(sizeof(struct List_##ALIAS));\
         if(!res) return NULL;                                              \
-        *res = (struct List_##ALIAS){*node, val};                      \
+        *res = (struct List_##ALIAS){val, *node};                      \
         *node = res;                                                   \
         return &res->val;                                                  \
 }                                                                      \

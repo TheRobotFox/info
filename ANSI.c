@@ -1,39 +1,73 @@
 #include "ANSI.h"
-#include "ANSI_internal.h"
+#include "info_string.h"
 
-typedef uint8_t ANSI_rule[3];
+#define STR(x) [x]=#x,
+const char *info_styles_str[STYLES_COUNT] = {
+        INFO_STYLES(STR)
+};
+const char *info_styles_str_short[STYLES_COUNT] = {
+        [INVERT] = "IV",
+        [STRIKE] = "ST",
+        [OVERLINE] = "OL",
+        [FAINT] = "FT",
+        [BOLD] = "BF",
+        [UNDERLINE] = "UL",
+        [NORMAL] = "NF",
+        [FOREGROUND] = "F(",
+        [BACKGROUND] = "B("
+};
+
+const int info_styles_val[][2] = {
+        [INVERT]    = {27, 7},
+        [STRIKE]    = {29, 9},
+        [OVERLINE]  = {55,53},
+        [FAINT]     = {-1, 2},
+        [BOLD]      = {-1, 1},
+        [UNDERLINE] = {24, 4},
+        [NORMAL]    = {-1, 22},
+        [DOUBLE_UNDERLINE] = {24, 21},
+        [FOREGROUND] = {38},
+        [BACKGROUND] = {48}
+};
+
+const char *info_colors_str[COLORS_COUNT] = {
+        INFO_COLORS(STR)
+};
+
+const struct info_Color info_colors_val[COLORS_COUNT] = {
+        [WHITE]      = {.r = 185, .g = 185, .b = 185},
+        [RED]        = {.r = 255, .g = 0  , .b = 0  },
+        [GREEN]      = {.r = 0  , .g = 255, .b = 0  },
+        [BLUE]       = {.r = 0  , .g = 0  , .b = 255},
+        [CYAN]       = {.r = 0  , .g = 200, .b = 255},
+        [LIGHTRED]   = {.r = 225, .g = 100 , .b = 100 },
+        [YELLOW]     = {.r = 255, .g = 220, .b = 0  },
+        [LIGHTGREEN] = {.r = 60 , .g = 120, .b = 60 },
+        [LIGHTBLUE]  = {.r = 60 , .g = 60 , .b = 120}
+};
 
 
-/* static char *info_internal_ANSI_mode_apply(int8_t a, int8_t b) */
-/* { */
-/*         if(a==b) */
-/*                 return 0; */
-
-/* } */
-
-/* static bool info_internal_ANSI_color_cmp(struct info_ANSI_color a, struct info_ANSI_color b) */
-/* { */
-/*         return a.r==b.r && a.g==b.g && a.b==b.b; */
-/* } */
-
-ANSI current = {1,0,0,0,0,0, {0,0,0}, { 0,0,0 }};
-ANSI normal = {1,0,0,0,0,0, {0,0,0}, { 0,0,0 }};
-
-void info_internal_ANSI_stream_reset(FILE *f)
+void info_ansi_apply(struct info_Style to, struct info_Style from, info_String *str)
 {
-        FPUTS(INFO_STR("\033[0m"), f);
-        current=normal;
-}
-void info_internal_ANSI_switch(List out, ANSI new)
-{
-        if(new.normal){
-                //if(!current.normal)
-                        info_buffer_printf(out, INFO_STR("\033[0m"));
-                return;
+        if(to.kind == FOREGROUND || to.kind == BACKGROUND){
+                struct info_Color a = to.color, b = from.color;
+                if(a.r == b.r
+                   && a.g == b.g
+                   && a.b == b.b) return; // same color => do nothing
+                info_string_printf(str, INFO_STR("\033[%d;2;%d;%d;%dm"), info_styles_val[to.kind][0], a.r,a.g,a.b);
+        } else {
+                if(from.mode==to.mode) return;
+                if(to.kind == INTENSITY){
+                        int res;
+                        switch(to.mode){
+                                case -1: res = 2; break;
+                                case 1: res = 1; break;
+                                default: res = 22; break;
+                        }
+                        info_string_printf(str, INFO_STR("\033[%dm"), res);
+
+                } else {
+                        info_string_printf(str, INFO_STR("\033[%dm"), info_styles_val[to.kind][to.mode]);
+                }
         }
-        //if(!info_internal_ANSI_color_cmp(new.forground, current.forground))
-        info_buffer_printf(out, INFO_STR("\033[38;2;%d;%d;%dm"), new.forground.r, new.forground.g, new.forground.b);
-        current = new;
-
 }
-
