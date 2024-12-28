@@ -155,7 +155,7 @@ static struct List_DrawCall* parse(const info_char *text, const char *end)
     const char *cb = next_cb(ob, end);
 
     list = parse(cb+1, end);
-    struct info_DrawCall dc;
+    struct info_DrawCall dc = { 0 };
     if(( ob < cb && cb < end)){
 
         if(info_parse_group(&dc, text+1, cb)){
