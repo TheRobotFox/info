@@ -15,8 +15,8 @@ const char *field_str[FIELDS_COUNT] = {
 FIELDS(STR)
 };
 
-LIST_IMPL(struct info_DrawCall, DrawCall);
-LIST_IMPL(struct info_Style, Style);
+LIST_IMPL(struct info_DrawCall, DrawCall)
+LIST_IMPL(struct info_Style, Style)
 
 static const info_char* parse_color(struct info_Color *col, const info_char *text)
 {
@@ -29,11 +29,11 @@ static const info_char* parse_color(struct info_Color *col, const info_char *tex
     }
     char *end;
     col->r = strtoul(text, &end, 10);
-    if(!(*end == ',' && col->r < 256)) return NULL;
+    if(!(*end == ',')) return NULL;
     col->g = strtoul(end+1, &end, 10);
-    if(!(*end == ',' && col->g < 256)) return NULL;
+    if(!(*end == ',')) return NULL;
     col->b = strtoul(end+1, &end, 10);
-    if(!(*end == ')' && col->b < 256)) return NULL;
+    if(!(*end == ')')) return NULL;
     return end;
 }
 
@@ -179,8 +179,8 @@ struct List_DrawCall* info_parse(const info_char *text)
     return parse(text, text+strlen(text));
 }
 
-LIST_INC(struct List_Style*, Styles);
-LIST_IMPL(struct List_Style*, Styles);
+LIST_INC(struct List_Style*, Styles)
+LIST_IMPL(struct List_Style*, Styles)
 
 static struct info_Style style_get_prev(enum info_Style_Type type, List_Styles history)
 {

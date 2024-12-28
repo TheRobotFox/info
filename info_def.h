@@ -21,8 +21,8 @@ enum info_Field_Type {
 };
 
 struct info_DrawCall;
-LIST_INC(struct info_DrawCall, DrawCall);
-LIST_INC(struct info_Style, Style);
+LIST_INC(struct info_DrawCall, DrawCall)
+LIST_INC(struct info_Style, Style)
 
 struct info_DrawCall
 {
