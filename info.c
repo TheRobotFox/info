@@ -308,37 +308,58 @@ static void info_render_list(List_DrawCall list,
     }
 }
 
-info_String info_render(struct info_Msg msg)
+FILE *out = NULL;
+struct info_Msg msg = { 0 };
+int hold = 0, holding = 0;
+
+void info_msg(struct info_Origin origin, const info_char *prefix)
 {
-    info_String str = info_string_create(2<<10);
+    if(msg.str.str) free(msg.str.str);
+
+    msg = (struct info_Msg){ 0 };
+    msg.data.origin = origin;
+
+    struct List_DrawCall *list = info_parse(prefix);
     struct List_Styles *history = NULL;
-    info_render_list(&msg.prefix, &str, &history, &msg.data);
+    info_String str = info_string_create(2<<10);
+    info_render_list(&list, &str, &history, &msg.data);
     msg.data.prefix_len = msg.data.current_len;
-    info_render_list(&msg.content, &str, &history, &msg.data);
-    // filter newlines
-    return str;
+    msg.str = str;
 }
 
-size_t level = 0;
-FILE *out = NULL;
-
-void info_printf(struct info_Origin origin, const info_char *prefix, const info_char *format, ...)
+void info_printf(const info_char *format, ...)
 {
-    struct info_Msg msg = {
-        .data = {.origin = origin, .level=level},
-        .prefix = info_parse(prefix),
-        .content = info_parse(format)
-    };
-    info_String str = info_render(msg);
+    if(!out) out = stderr;
+
+    if(!holding)
+        FPUTS(msg.str.str, out);
+
+    struct List_DrawCall *list = info_parse(format);
+    struct List_Styles *history = NULL;
+    info_String str = info_string_create(2<<10);
+    info_render_list(&list, &str, &history, &msg.data);
 
     va_list args;
     va_start(args, format);
 
-    if(!out) out = stderr;
-
     VFPRINTF(out, str.str, args);
-    FPUTC('\n', out);
+
+    if(!hold){
+        FPUTC('\n', out);
+        holding = 0;
+    }else{
+        holding = 1;
+    }
 
     va_end(args);
     free(str.str);
+}
+
+void info_hold(int set)
+{
+    if(!set && holding){
+        FPUTC('\n', out);
+        holding = 0;
+    }
+    hold = set;
 }

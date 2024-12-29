@@ -56,8 +56,7 @@ struct info_Data
 
 struct info_Msg{
 	struct info_Data data;
-    struct List_DrawCall *prefix;
-    struct List_DrawCall *content;
+    info_String str;
 };
 
 
