@@ -42,8 +42,8 @@ const struct info_Color info_colors_val[COLORS_COUNT] = {
         [CYAN]       = {.r = 0  , .g = 200, .b = 255},
         [LIGHTRED]   = {.r = 225, .g = 100 , .b = 100 },
         [YELLOW]     = {.r = 255, .g = 220, .b = 0  },
-        [LIGHTGREEN] = {.r = 60 , .g = 120, .b = 60 },
-        [LIGHTBLUE]  = {.r = 60 , .g = 60 , .b = 120}
+        [LIGHTGREEN] = {.r = 60 , .g = 180, .b = 60 },
+        [LIGHTBLUE]  = {.r = 120 , .g = 120 , .b = 225}
 };
 
 

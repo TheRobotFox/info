@@ -244,6 +244,12 @@ static void info_drawcall_render(struct info_DrawCall *dc,
                 } else if(dc->text.str[i] == '\t'){
                     info_tabulate(1, str, data);
                     ptr = dc->text.str+i+1;
+                } else if(dc->text.str[i] == '\r'){
+                    size_t len = dc->text.str+i-ptr;
+                    info_string_puts(str, ptr, len);
+                    info_string_puts(str, "\\r", 2);
+                    ptr = dc->text.str+i+1;
+                    data->current_len += 2+len;
                 }
             }
             size_t len = dc->text.str+dc->text.len-ptr;
@@ -334,15 +340,22 @@ void info_printf(const info_char *format, ...)
     if(!holding)
         FPUTS(msg.str.str, out);
 
-    struct List_DrawCall *list = info_parse(format);
-    struct List_Styles *history = NULL;
-    info_String str = info_string_create(2<<10);
-    info_render_list(&list, &str, &history, &msg.data);
+    info_String rendered = info_string_create(1<<10);
 
     va_list args;
     va_start(args, format);
+    info_string_vprintf(&rendered, format, args);
 
-    VFPRINTF(out, str.str, args);
+    va_end(args);
+
+    struct List_DrawCall *list = info_parse(rendered.str);
+    struct List_Styles *history = NULL;
+    info_String str = info_string_create(1<<10);
+    info_render_list(&list, &str, &history, &msg.data);
+
+    FPUTS(str.str, out);
+
+    free(rendered.str);
 
     if(!hold){
         FPUTC('\n', out);
@@ -350,8 +363,6 @@ void info_printf(const info_char *format, ...)
     }else{
         holding = 1;
     }
-
-    va_end(args);
     free(str.str);
 }
 
