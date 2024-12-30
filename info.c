@@ -242,7 +242,7 @@ static void info_drawcall_render(struct info_DrawCall *dc,
                     info_char *buf = malloc(sizeof(info_char)*data->prefix_len);
                     for(size_t i=0; i<data->prefix_len; i++) buf[i] = ' ';
                     info_string_puts(str, buf, data->prefix_len);
-                    data->current_len += data->prefix_len;
+                    data->current_len = data->prefix_len;
                     free(buf);
                 } else if(dc->text.str[i] == '\t'){
                     info_tabulate(1, str, data);
