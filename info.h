@@ -34,7 +34,7 @@ void info_hold(int);
 
 #define _MSG(PREFIX) info_msg((struct info_Origin){__FILE__, __LINE__, __func__}, PREFIX);
 #define _PRINTF(P,...) do{_MSG(P); info_printf(__VA_ARGS__);}while(0)
-#define _PREFIX(TAG) "[{Time}]" TAG " {F(200,200,120):{Func}}: {Level}"
+#define _PREFIX(TAG) "[{Time}]" TAG " {F(200,200,120): {Func} }: {Level}"
 #define HOLD info_hold(1);
 #define RELEASE info_hold(0);
 #define PRINT(...) info_printf(__VA_ARGS__)
@@ -52,5 +52,5 @@ void info_hold(int);
 #define ERROR(...) _PRINTF(_PREFIX("[{F(LIGHTRED):ERROR}]"), __VA_ARGS__)
 #endif
 #ifndef FATAL
-#define FATAL(...) _PRINTF(_PREFIX("[{F(RED):FATAL}] {UL:{File}:{Line}} in"), __VA_ARGS__)
+#define FATAL(...) _PRINTF(_PREFIX("[{F(RED):FATAL}] {UL:{File}: {Line} } in"), __VA_ARGS__)
 #endif

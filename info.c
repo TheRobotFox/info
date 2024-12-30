@@ -108,7 +108,10 @@ static const info_char* info_parse_group(struct info_DrawCall *dc, const info_ch
                 while(dc->styled.styles) List_Style_pop(&dc->styled.styles);
                 return NULL;
         }
-        dc->styled.sub = parse(col+1, end);
+        const info_char *content_start = col+1, *content_end = end-1;
+        while(*content_start==INFO_STR(' ')) content_start++;
+        while(*content_end==INFO_STR(' ')) content_end--;
+        dc->styled.sub = parse(content_start, content_end+1);
     } else {
         // parse Field
         dc->kind = FIELD;
