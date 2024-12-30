@@ -126,7 +126,10 @@ static const info_char* info_parse_group(struct info_DrawCall *dc, const info_ch
 static const info_char* next_cb(const info_char *text, const info_char *end){
     int lvl = 0;
     do {
-        if(*text==INFO_STR('{')) lvl++;
+        if(*text==INFO_STR('{')){
+            if(*(text+1)==INFO_STR('{')) text+=2;
+            else lvl++;
+        }
         if(*text==INFO_STR('}')) lvl--;
     } while(lvl && ++text<end);
     return text;
@@ -169,7 +172,7 @@ static struct List_DrawCall* parse(const info_char *text, const char *end)
     dc.styled.styles = NULL;
     List_Style_insert(&dc.styled.styles, (struct info_Style){.kind=FOREGROUND, .color={255,0,0}});
     List_Style_insert(&dc.styled.styles, (struct info_Style){.kind=STRIKE, .mode=1});
-    List_DrawCall_insert(&dc.styled.sub, (struct info_DrawCall){.kind = TEXT, .text = {.str = text, .len = cb+1 - text}});
+    List_DrawCall_insert(&dc.styled.sub, (struct info_DrawCall){.kind = TEXT, .text = {.str = text, .len = cb+1 - text}}); //TODO FIXME on error not stoping strike through
     List_DrawCall_insert(&list, dc);
     return list;
 }
