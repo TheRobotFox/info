@@ -9,8 +9,7 @@
 #define _LIST_INC(T, ALIAS,...)                                      \
         struct List_##ALIAS;                                         \
         typedef struct List_##ALIAS** List_##ALIAS;                  \
-        T* List_##ALIAS##_get(struct List_##ALIAS **node);           \
-        struct List_##ALIAS* List_##ALIAS##_next(struct List_##ALIAS **node);           \
+        T* List_##ALIAS##_next(struct List_##ALIAS **node);           \
         T* List_##ALIAS##_insert(struct List_##ALIAS **node, T val); \
         T List_##ALIAS##_pop(struct List_##ALIAS **node);
 
@@ -20,14 +19,12 @@ struct List_##ALIAS                                                    \
         T val;                                                         \
         struct List_##ALIAS *next;                                     \
 };                                                                     \
-struct List_##ALIAS* List_##ALIAS##_next(struct List_##ALIAS **node)   \
+T* List_##ALIAS##_next(struct List_##ALIAS **node)                     \
 {                                                                      \
         if(!*node) return NULL;                                             \
-        return (*node)->next;                                               \
-}                                                                      \
-T* List_##ALIAS##_get(struct List_##ALIAS **node){                     \
-        if((*node)) return &(*node)->val;                                   \
-        return NULL;                                                        \
+        T* res = &(*node)->val;                                        \
+        *node = (*node)->next;                                         \
+        return res;                                                         \
 }                                                                      \
 T* List_##ALIAS##_insert(struct List_##ALIAS **node, T val)            \
 {                                                                      \

@@ -123,57 +123,86 @@ static const info_char* info_parse_group(struct info_DrawCall *dc, const info_ch
     return end;
 }
 
-static const info_char* next_cb(const info_char *text, const info_char *end){
-    int lvl = 0;
-    do {
+static const info_char* next_curly(const info_char *text, const info_char *end){
+    while(text<end) {
         if(*text==INFO_STR('{')){
             if(*(text+1)==INFO_STR('{')) text+=2;
-            else lvl++;
+            else return text;
         }
-        if(*text==INFO_STR('}')) lvl--;
-    } while(lvl && ++text<end);
+        if(*text==INFO_STR('}')){
+            if(*(text+1)==INFO_STR('}')) text+=2;
+            else return text;
+        }
+        text++;
+    };
+    return NULL;
+}
+static const info_char* find_group_end(const info_char *text, const info_char *end){
+    int lvl = 1;
+    do {
+        text++;
+        text = next_curly(text, end);
+        if(!text) return NULL;
+        if(*text=='{') lvl++;
+        else           lvl--;
+
+    } while(lvl);
     return text;
 }
-static struct List_DrawCall* parse(const info_char *text, const char *end)
+
+static struct List_DrawCall* parse(const info_char *text, const info_char *end)
 {
-    struct List_DrawCall *list = NULL;
-    if(text>=end) return list;
+    if(text>=end) return NULL;
 
-    const char *ob=STRSTR(text, "{");
-    if(ob==NULL || ob>end) ob = end;
-    else if(ob[1] == '{'){
-        list = parse(ob+2, end);
-        List_DrawCall_insert(&list, (struct info_DrawCall){.kind = TEXT, .text = {.str = "{", .len = 1}});
-        return list;
-    }
-
-    if(ob!=text){
-        if(ob < end && ob[-1]!='{')
-            list = parse(ob, end);
-        end = ob < end ? ob : end;
-        return (List_DrawCall_insert(&list, (struct info_DrawCall){.kind = TEXT, .text = {.str = text, .len = end - text}}),
-            list);
-    }
-
-    const char *cb = next_cb(ob, end);
-
-    list = parse(cb+1, end);
+    const info_char *next = next_curly(text, end);
+    struct List_DrawCall *list;
+    int mark_error = 0;
     struct info_DrawCall dc = { 0 };
-    if(( ob < cb && cb < end)){
 
-        if(info_parse_group(&dc, text+1, cb)){
+    if(!next){
+        list = NULL;
+        next = end;
+    } else {
+
+        if(next[0]==next[1]) {
+            // escape characters
+
+            list = parse(next+2, end);
+            dc = (struct info_DrawCall){.kind = TEXT, .text = {.str = next, .len = 1}};
+
+        } else if(*next==INFO_STR('{')) {
+            const info_char *cb = find_group_end(next, end);
+            if(!cb){
+                list = NULL;
+                mark_error = 1;
+                dc = (struct info_DrawCall){.kind = TEXT, .text = {.str = next, .len = end-next}};
+            } else {
+                struct info_DrawCall group = { 0 };
+
+                list = parse(cb+1, end);
+                if(!info_parse_group(&group, next+1, cb)) mark_error = 1;
+                else dc = group;
+            }
+
+        } else if(*next==INFO_STR('}')){
+            dc = (struct info_DrawCall){.kind = TEXT, .text = {.str = "<}>", .len = 3}};
+            mark_error = 1;
+        }
+        if(mark_error){
+
+            // Mark Error Red
+            struct info_DrawCall error = { 0 };
+            error.kind = STYLE;
+            List_Style_insert(&error.styled.styles, (struct info_Style){.kind=FOREGROUND, .color={255,0,0}});
+            List_Style_insert(&error.styled.styles, (struct info_Style){.kind=STRIKE, .mode=1});
+            List_DrawCall_insert(&error.styled.sub, dc);
+            List_DrawCall_insert(&list, error);
+        } else {
             List_DrawCall_insert(&list, dc);
-            return list;
         }
     }
-    // Mark Error Red
-    dc.kind = STYLE;
-    dc.styled.sub = NULL;
-    dc.styled.styles = NULL;
-    List_Style_insert(&dc.styled.styles, (struct info_Style){.kind=FOREGROUND, .color={255,0,0}});
-    List_Style_insert(&dc.styled.styles, (struct info_Style){.kind=STRIKE, .mode=1});
-    List_DrawCall_insert(&dc.styled.sub, (struct info_DrawCall){.kind = TEXT, .text = {.str = text, .len = cb+1 - text}}); //TODO FIXME on error not stoping strike through
-    List_DrawCall_insert(&list, dc);
+       
+    List_DrawCall_insert(&list, (struct info_DrawCall){.kind = TEXT, .text = {.str = text, .len = next-text}});
     return list;
 }
 
@@ -187,17 +216,17 @@ LIST_IMPL(struct List_Style*, Styles)
 
 static struct info_Style style_get_prev(enum info_Style_Type type, List_Styles history)
 {
-        struct List_Styles *layers = *history;
-        struct List_Style **layer;
-        while(( layer = List_Styles_get(&layers) )){
+        struct List_Styles *ptr = *history;
+        struct List_Style **elem;
+        while(( elem = List_Styles_next(&ptr) )){
+            struct List_Style *ptr = *elem;
 
             struct info_Style *current;
-            while(( current = List_Style_get(layer) )){
+            while(( current = List_Style_next(&ptr) )){
                 if(current->kind == type){
                         return *current;
                 }
             }
-            layers = List_Styles_next(&layers);
         }
 
         struct info_Style res = {.kind = type};
@@ -262,10 +291,9 @@ static void info_drawcall_render(struct info_DrawCall *dc,
         case STYLE:{
             struct List_Style *ptr = dc->styled.styles;
             struct info_Style *current;
-            while( (current = List_Style_get(&ptr)) ){
+            while( (current = List_Style_next(&ptr)) ){
                 struct info_Style prev = style_get_prev(current->kind, history);
                 info_ansi_apply(*current, prev, str); // activate
-                ptr = List_Style_next(&ptr);
             }
 
             List_Styles_insert(history, dc->styled.styles);
@@ -340,7 +368,7 @@ void info_printf(const info_char *format, ...)
 {
     if(!out) out = stderr;
 
-    if(!holding)
+    if(!holding && msg.str.str )
         FPUTS(msg.str.str, out);
 
     info_String rendered = info_string_create(1<<10);
