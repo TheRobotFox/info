@@ -395,6 +395,7 @@ void info_printf(const info_char *format, ...)
     }else{
         holding = 1;
     }
+    fflush(out);
     free(str.str);
 }
 
