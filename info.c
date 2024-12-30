@@ -128,29 +128,23 @@ static const info_char* info_parse_group(struct info_DrawCall *dc, const info_ch
 
 static const info_char* next_curly(const info_char *text, const info_char *end){
     while(text<end) {
-        if(*text==INFO_STR('{')){
-            if(*(text+1)==INFO_STR('{')) text+=2;
-            else return text;
-        }
-        if(*text==INFO_STR('}')){
-            if(*(text+1)==INFO_STR('}')) text+=2;
-            else return text;
-        }
+        if(*text==INFO_STR('{')) return text;
+        if(*text==INFO_STR('}')) return text;
         text++;
     };
     return NULL;
 }
 static const info_char* find_group_end(const info_char *text, const info_char *end){
-    int lvl = 1;
-    do {
-        text++;
+    int lvl = 0;
+    for(;;text++) {
         text = next_curly(text, end);
         if(!text) return NULL;
+        if(text<end-1 && text[0]==text[1]) continue;
+
         if(*text=='{') lvl++;
         else           lvl--;
-
-    } while(lvl);
-    return text;
+        if(!lvl) return text;
+    }
 }
 
 static struct List_DrawCall* parse(const info_char *text, const info_char *end)
