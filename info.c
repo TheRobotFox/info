@@ -139,7 +139,10 @@ static const info_char* find_group_end(const info_char *text, const info_char *e
     for(;;text++) {
         text = next_curly(text, end);
         if(!text) return NULL;
-        if(text<end-1 && text[0]==text[1]) continue;
+        if(text<end-1 && text[0]==text[1]) {
+            text++;
+        continue;
+        }
 
         if(*text=='{') lvl++;
         else           lvl--;
@@ -174,11 +177,12 @@ static struct List_DrawCall* parse(const info_char *text, const info_char *end)
                 mark_error = 1;
                 dc = (struct info_DrawCall){.kind = TEXT, .text = {.str = next, .len = end-next}};
             } else {
-                struct info_DrawCall group = { 0 };
 
                 list = parse(cb+1, end);
-                if(!info_parse_group(&group, next+1, cb)) mark_error = 1;
-                else dc = group;
+                if(!info_parse_group(&dc, next+1, cb)){
+                    mark_error = 1;
+                    dc = (struct info_DrawCall){.kind = TEXT, .text = {.str = next, .len = cb-next}};
+                }
             }
 
         } else if(*next==INFO_STR('}')){
