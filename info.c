@@ -1,7 +1,7 @@
 #include "ANSI.h"
 #include "List.h"
 #include "info_char.h"
-#include "info_def.h"
+#include "info_internal.h"
 #include "info_string.h"
 #include <stdarg.h>
 #include <stdio.h>
