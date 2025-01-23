@@ -2,12 +2,15 @@
 #include <stdarg.h>
 #include "info_def.h"
 
+
+#define TAB_WIDTH 4
+
 void info_msg(struct info_Origin origin, const info_char *prefix);
 void info_printf(const info_char *format, ...);
 info_String info_render(struct info_Msg msg);
 struct List_DrawCall* info_parse(const info_char *text);
-void info_seg_begin();
-void info_seg_end();
+void info_seg_begin(const char *name, struct info_Origin org);
+void info_seg_end(struct info_Origin org);
 void info_hold(int);
 
 #ifndef INFO_LVL
@@ -32,7 +35,8 @@ void info_hold(int);
 #define FATAL(...) ;
 #endif
 
-#define _MSG(PREFIX) info_msg((struct info_Origin){__FILE__, __LINE__, __func__}, PREFIX);
+#define _ORIGIN (struct info_Origin){__FILE__, __LINE__, __func__}
+#define _MSG(PREFIX) info_msg(_ORIGIN, PREFIX);
 #define _PRINTF(P,...) do{_MSG(P); info_printf(__VA_ARGS__);}while(0)
 #define _PREFIX(TAG) "[{Time}]" TAG " {F(200,200,120): {Func} }: {Level}"
 #define HOLD info_hold(1);
@@ -53,4 +57,10 @@ void info_hold(int);
 #endif
 #ifndef FATAL
 #define FATAL(...) _PRINTF(_PREFIX("[{F(RED):FATAL}] {UL:{File}: {Line} } in"), __VA_ARGS__)
+#endif
+#ifndef SEG_BEGIN
+#define SEG_BEGIN(name) info_seg_begin(name, _ORIGIN)
+#endif
+#ifndef SEG_END
+#define SEG_END info_seg_end(_ORIGIN)
 #endif

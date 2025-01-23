@@ -1,11 +1,8 @@
-#ifndef INFO_DEF_H_
-#define INFO_DEF_H_
+#ifndef INFO_INTERNAL_H_
+#define INFO_INTERNAL_H_
 
 #include "ANSI.h"
 #include "List.h"
-#include "info_def.h"
-
-#define TAB_WIDTH 4
 
 #define FIELDS(f) \
     f(Level)      \
@@ -32,12 +29,12 @@ struct info_DrawCall
     } kind;
     union {
         struct {
-            struct List_Style *styles;
-            struct List_DrawCall *sub;
+            List_Style styles;
+            List_DrawCall sub;
         } styled;
         struct info_Slice text;
         enum info_Field_Type field;
     };
 };
 
-#endif // INFO_DEF_H_
+#endif // INFO_INTERNAL_H_

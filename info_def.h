@@ -2,6 +2,7 @@
 #define INFO_DEF_H_
 
 #include "info_string.h"
+
 struct info_Origin
 {
 	const char *file;
@@ -16,7 +17,8 @@ struct info_Data
     size_t level, current_len, prefix_len;
 };
 
-struct info_Msg{
+struct info_Msg
+{
 	struct info_Data data;
     info_String str;
 };

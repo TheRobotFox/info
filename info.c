@@ -1,13 +1,15 @@
-#include "ANSI.h"
-#include "List.h"
-#include "info_char.h"
+#include "info.h"
 #include "info_internal.h"
-#include "info_string.h"
+#include "info_def.h"
 #include <stdarg.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+
+#define DECIMAL 10
+#define DEFAULT_STR_SIZE (1<<10)
 
 
 #define STR(x) [x]=#x,
@@ -28,11 +30,11 @@ static const info_char* parse_color(struct info_Color *col, const info_char *tex
         }
     }
     char *end;
-    col->r = strtoul(text, &end, 10);
+    col->r = strtoul(text, &end, DECIMAL);
     if(!(*end == ',')) return NULL;
-    col->g = strtoul(end+1, &end, 10);
+    col->g = strtoul(end+1, &end, DECIMAL);
     if(!(*end == ',')) return NULL;
-    col->b = strtoul(end+1, &end, 10);
+    col->b = strtoul(end+1, &end, DECIMAL);
     if(!(*end == ')')) return NULL;
     return end;
 }
@@ -78,7 +80,7 @@ static const info_char* parse_style(struct info_Style *style, const info_char *t
     return NULL;
 }
 
-static const info_char* info_parse_styles(List_Style list, const info_char *text, const info_char *end)
+static const info_char* info_parse_styles(List_Style *list, const info_char *text, const info_char *end)
 {
     while( text < end ){
         while(*text == INFO_STR(' ')) ++text;
@@ -89,7 +91,7 @@ static const info_char* info_parse_styles(List_Style list, const info_char *text
             || ( next = parse_style(&style, text, info_styles_str) ))) return NULL;
         text = next;
 
-        List_Style_insert(list, style);
+        List_Style_push(list, style);
 
         while(*text == INFO_STR(' ')) ++text;
 
@@ -194,16 +196,16 @@ static struct List_DrawCall* parse(const info_char *text, const info_char *end)
             // Mark Error Red
             struct info_DrawCall error = { 0 };
             error.kind = STYLE;
-            List_Style_insert(&error.styled.styles, (struct info_Style){.kind=FOREGROUND, .color={255,0,0}});
-            List_Style_insert(&error.styled.styles, (struct info_Style){.kind=STRIKE, .mode=1});
-            List_DrawCall_insert(&error.styled.sub, dc);
-            List_DrawCall_insert(&list, error);
+            List_Style_push(&error.styled.styles, (struct info_Style){.kind=FOREGROUND, .color={255,0,0}});
+            List_Style_push(&error.styled.styles, (struct info_Style){.kind=STRIKE, .mode=1});
+            List_DrawCall_push(&error.styled.sub, dc);
+            List_DrawCall_push(&list, error);
         } else {
-            List_DrawCall_insert(&list, dc);
+            List_DrawCall_push(&list, dc);
         }
     }
        
-    List_DrawCall_insert(&list, (struct info_DrawCall){.kind = TEXT, .text = {.str = text, .len = next-text}});
+    List_DrawCall_push(&list, (struct info_DrawCall){.kind = TEXT, .text = {.str = text, .len = next-text}});
     return list;
 }
 
@@ -215,9 +217,9 @@ struct List_DrawCall* info_parse(const info_char *text)
 LIST_INC(struct List_Style*, Styles)
 LIST_IMPL(struct List_Style*, Styles)
 
-static struct info_Style style_get_prev(enum info_Style_Type type, List_Styles history)
+static struct info_Style style_get_prev(enum info_Style_Type type, List_Styles *history)
 {
-        struct List_Styles *ptr = *history;
+        List_Styles ptr = *history;
         struct List_Style **elem;
         while(( elem = List_Styles_next(&ptr) )){
             struct List_Style *ptr = *elem;
@@ -240,7 +242,7 @@ static void info_tabulate(size_t n, info_String *str, struct info_Data *data)
 {
     if(!n) return;
     size_t offset = data->current_len%TAB_WIDTH,
-        len = n*TAB_WIDTH-offset;
+        len = (n*TAB_WIDTH)-offset;
     info_char *buf = malloc(sizeof(info_char)*len);
     for(size_t i=0; i<len; i++) buf[i] = ' ';
     info_string_puts(str, buf, len);
@@ -248,14 +250,14 @@ static void info_tabulate(size_t n, info_String *str, struct info_Data *data)
     free(buf);
 }
 
-static void info_render_list(List_DrawCall list,
+static void info_render_list(List_DrawCall *list,
                              info_String *str,
-                             List_Styles history,
+                             List_Styles *history,
                              struct info_Data *data);
 
 static void info_drawcall_render(struct info_DrawCall *dc,
                                  info_String *str,
-                                 List_Styles history,
+                                 List_Styles *history,
                                  struct info_Data *data)
 {
     switch(dc->kind){
@@ -290,14 +292,14 @@ static void info_drawcall_render(struct info_DrawCall *dc,
             data->current_len += len;
         } break;
         case STYLE:{
-            struct List_Style *ptr = dc->styled.styles;
+            List_Style ptr = dc->styled.styles;
             struct info_Style *current;
             while( (current = List_Style_next(&ptr)) ){
                 struct info_Style prev = style_get_prev(current->kind, history);
                 info_ansi_apply(*current, prev, str); // activate
             }
 
-            List_Styles_insert(history, dc->styled.styles);
+            List_Styles_push(history, dc->styled.styles);
             info_render_list(&dc->styled.sub, str, history, data);
             List_Styles_pop(history);
 
@@ -335,9 +337,9 @@ static void info_drawcall_render(struct info_DrawCall *dc,
     }
 }
 
-static void info_render_list(List_DrawCall list,
+static void info_render_list(List_DrawCall *list,
                              info_String *str,
-                             List_Styles history,
+                             List_Styles *history,
                              struct info_Data *data)
 {
     while(*list){
@@ -346,9 +348,18 @@ static void info_render_list(List_DrawCall list,
     }
 }
 
+struct Segment{
+    const char *name;
+    struct timespec start;
+};
+
+LIST_INC(struct Segment, seg)
+LIST_IMPL(struct Segment, seg)
+
 FILE *out = NULL;
-struct info_Msg msg = { 0 };
-int hold = 0, holding = 0;
+static struct info_Msg msg = { 0 };
+static int hold = 0, holding = 0;
+static List_seg segments = NULL;
 
 void info_msg(struct info_Origin origin, const info_char *prefix)
 {
@@ -356,10 +367,11 @@ void info_msg(struct info_Origin origin, const info_char *prefix)
 
     msg = (struct info_Msg){ 0 };
     msg.data.origin = origin;
+    msg.data.level = List_seg_length(&segments);
 
     struct List_DrawCall *list = info_parse(prefix);
     struct List_Styles *history = NULL;
-    info_String str = info_string_create(2<<10);
+    info_String str = info_string_create(DEFAULT_STR_SIZE);
     info_render_list(&list, &str, &history, &msg.data);
     msg.data.prefix_len = msg.data.current_len;
     msg.str = str;
@@ -372,7 +384,7 @@ void info_printf(const info_char *format, ...)
     if(!holding && msg.str.str )
         FPUTS(msg.str.str, out);
 
-    info_String rendered = info_string_create(1<<10);
+    info_String rendered = info_string_create(DEFAULT_STR_SIZE);
 
     va_list args;
     va_start(args, format);
@@ -382,7 +394,7 @@ void info_printf(const info_char *format, ...)
 
     struct List_DrawCall *list = info_parse(rendered.str);
     struct List_Styles *history = NULL;
-    info_String str = info_string_create(1<<10);
+    info_String str = info_string_create(DEFAULT_STR_SIZE);
     info_render_list(&list, &str, &history, &msg.data);
 
     FPUTS(str.str, out);
@@ -406,4 +418,23 @@ void info_hold(int set)
         holding = 0;
     }
     hold = set;
+}
+
+void info_seg_begin(const char *name, struct info_Origin org)
+{
+    info_msg(org, _PREFIX("[{F(LIGHTGREEN):SEG}]"));
+    info_printf("Begin Segment '{BF:%s}'", name);
+    struct timespec t = {0};
+    timespec_get(&t, TIME_UTC);
+    List_seg_push(&segments, (struct Segment){name, t});
+}
+void info_seg_end(struct info_Origin org)
+{
+    struct Segment s = List_seg_pop(&segments);
+    struct timespec now = {0};
+    timespec_get(&now, TIME_UTC);
+    info_msg(org, _PREFIX("[{F(LIGHTGREEN):SEG}]"));
+    info_printf("End Segment '{BF:%s}' took %.3fs", s.name,
+                (now.tv_sec - s.start.tv_sec)
+                + ((now.tv_nsec - s.start.tv_nsec) / 1000000000.0));
 }
