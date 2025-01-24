@@ -3,7 +3,7 @@
 #include "info_def.h"
 
 
-#define TAB_WIDTH 4
+#define TAB_WIDTH 8
 
 void info_msg(struct info_Origin origin, const info_char *prefix);
 void info_printf(const info_char *format, ...);
@@ -19,29 +19,29 @@ void info_hold(int);
 
 // MARCOS
 #if INFO_LVL<3
-#define INFO() ;
+#define INFO()
+#define BTW(code)
 #endif
 #if INFO_LVL<2
-#define SUCCESS(...) ;
-#define SEG_BEGIN(name) ;
-#define SEG_END ;
-#define INDENT(n) 0
+#define SUCCESS(...)
+#define SEG_BEGIN(name)
+#define SEG_END
 #endif
 #if INFO_LVL<1
 #define HOLD(...)
-#define ERROR(...) ;
+#define RELEASE(...)
+#define ERROR(...)
 #endif
 #if INFO_LVL<0
-#define FATAL(...) ;
+#define FATAL(...)
 #endif
 
 #define _ORIGIN (struct info_Origin){__FILE__, __LINE__, __func__}
 #define _MSG(PREFIX) info_msg(_ORIGIN, PREFIX);
 #define _PRINTF(P,...) do{_MSG(P); info_printf(__VA_ARGS__);}while(0)
-#define _PREFIX(TAG) "[{Time}]" TAG " {F(200,200,120): {Func} }: {Level}"
-#define HOLD info_hold(1);
-#define RELEASE info_hold(0);
+#define _PREFIX(TAG) "[{Time}]{Level}" TAG " {F(200,200,120): {Func} }: "
 #define PRINT(...) info_printf(__VA_ARGS__)
+#define MSG(code) HOLD; code RELEASE;
 
 #ifndef INFO
 #define INFO(...) _PRINTF(_PREFIX("[{F(CYAN):INFO}]"), __VA_ARGS__ )
@@ -63,4 +63,13 @@ void info_hold(int);
 #endif
 #ifndef SEG_END
 #define SEG_END info_seg_end(_ORIGIN)
+#endif
+#ifndef HOLD
+#define HOLD info_hold(1)
+#endif
+#ifndef RELEASE
+#define RELEASE info_hold(0)
+#endif
+#ifndef BTW
+#define BTW(code) code
 #endif

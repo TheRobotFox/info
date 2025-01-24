@@ -434,7 +434,7 @@ void info_seg_end(struct info_Origin org)
     struct timespec now = {0};
     timespec_get(&now, TIME_UTC);
     info_msg(org, _PREFIX("[{F(LIGHTGREEN):SEG}]"));
-    info_printf("End Segment '{BF:%s}' took %.3fs", s.name,
+    info_printf("End Segment '{BF:%s}' took %.3fs\n", s.name,
                 (now.tv_sec - s.start.tv_sec)
                 + ((now.tv_nsec - s.start.tv_nsec) / 1000000000.0));
 }
