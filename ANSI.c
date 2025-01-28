@@ -26,8 +26,8 @@ const int info_styles_val[][2] = {
         [UNDERLINE] = {24, 4},
         [NORMAL]    = {-1, 22},
         [DOUBLE_UNDERLINE] = {24, 21},
-        [FOREGROUND] = {38},
-        [BACKGROUND] = {48}
+        [FOREGROUND] = {39, 38},
+        [BACKGROUND] = {49, 48}
 };
 
 const char *info_colors_str[COLORS_COUNT] = {
@@ -50,11 +50,16 @@ const struct info_Color info_colors_val[COLORS_COUNT] = {
 void info_ansi_apply(struct info_Style to, struct info_Style from, info_String *str)
 {
         if(to.kind == FOREGROUND || to.kind == BACKGROUND){
-                struct info_Color a = to.color, b = from.color;
-                if(a.r == b.r
-                   && a.g == b.g
-                   && a.b == b.b) return; // same color => do nothing
-                info_string_printf(str, INFO_STR("\033[%d;2;%d;%d;%dm"), info_styles_val[to.kind][0], a.r,a.g,a.b);
+                if(to.mode==0 && from.mode==0) return;
+                if(to.mode==0) {
+                        info_string_printf(str, INFO_STR("\033[%dm"), info_styles_val[to.kind][0]);
+                } else {
+                        struct info_Color a = to.color, b = from.color;
+                        if(a.r == b.r
+                        && a.g == b.g
+                        && a.b == b.b) return; // same color => do nothing
+                        info_string_printf(str, INFO_STR("\033[%d;2;%d;%d;%dm"), info_styles_val[to.kind][1], a.r,a.g,a.b);
+                }
         } else {
                 if(from.mode==to.mode) return;
                 if(to.kind == INTENSITY){
