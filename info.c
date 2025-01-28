@@ -232,9 +232,7 @@ static struct info_Style style_get_prev(enum info_Style_Type type, List_Styles *
             }
         }
 
-        struct info_Style res = {.kind = type};
-        if(type == INTENSITY) res.mode = 0;
-        else if(type == FOREGROUND || type == BACKGROUND) res.color = info_colors_val[WHITE];
+        struct info_Style res = {.kind = type, .mode = 0};
         return res;
 }
 

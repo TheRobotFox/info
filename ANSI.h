@@ -1,7 +1,6 @@
 #pragma once
 #include "info_string.h"
 #include <stdint.h>
-#include "List.h"
 
 #define INFO_STYLES(f)     \
         f(INVERT)     \
@@ -29,6 +28,7 @@ extern const char *info_styles_str_short[STYLES_COUNT];
 
 #define INFO_COLORS(f) \
         f(WHITE)       \
+        f(GREY)       \
         f(RED)         \
         f(GREEN)       \
         f(BLUE)        \

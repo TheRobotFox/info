@@ -35,7 +35,8 @@ const char *info_colors_str[COLORS_COUNT] = {
 };
 
 const struct info_Color info_colors_val[COLORS_COUNT] = {
-        [WHITE]      = {.r = 185, .g = 185, .b = 185},
+        [WHITE]      = {.r = 220, .g = 220, .b = 220},
+        [GREY]      = {.r = 150, .g = 150, .b = 150},
         [RED]        = {.r = 255, .g = 0  , .b = 0  },
         [GREEN]      = {.r = 0  , .g = 255, .b = 0  },
         [BLUE]       = {.r = 0  , .g = 0  , .b = 255},
