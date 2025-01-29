@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <threads.h>
 #include <time.h>
 
 #define DECIMAL 10
@@ -355,14 +356,12 @@ LIST_INC(struct Segment, seg)
 LIST_IMPL(struct Segment, seg)
 
 FILE *out = NULL;
-static struct info_Msg msg = { 0 };
-static int hold = 0, holding = 0;
-static List_seg segments = NULL;
+thread_local static struct info_Msg msg = { 0 };
+thread_local static int hold = 0, holding = 0, newlined=0;
+thread_local static List_seg segments = NULL;
 
 void info_msg(struct info_Origin origin, const info_char *prefix)
 {
-    if(msg.str.str) free(msg.str.str);
-
     msg = (struct info_Msg){ 0 };
     msg.data.origin = origin;
     msg.data.level = List_seg_length(&segments);
@@ -373,6 +372,14 @@ void info_msg(struct info_Origin origin, const info_char *prefix)
     info_render_list(&list, &str, &history, &msg.data);
     msg.data.prefix_len = msg.data.current_len;
     msg.str = str;
+}
+
+static void release()
+{
+    if(!newlined) FPUTC('\n', out); // TODO conditionally
+    if(msg.str.str) free(msg.str.str);
+
+    holding = 0;
 }
 
 void info_printf(const info_char *format, ...)
@@ -396,25 +403,19 @@ void info_printf(const info_char *format, ...)
     info_render_list(&list, &str, &history, &msg.data);
 
     FPUTS(str.str, out);
+    newlined = str.str[str.len-1]=='\n';
 
-    free(rendered.str);
+    if(!hold) release();
+    else holding = 1;
 
-    if(!hold){
-        FPUTC('\n', out);
-        holding = 0;
-    }else{
-        holding = 1;
-    }
     fflush(out);
+    free(rendered.str);
     free(str.str);
 }
 
 void info_hold(int set)
 {
-    if(!set && holding){
-        FPUTC('\n', out);
-        holding = 0;
-    }
+    if(!set && holding) release();
     hold = set;
 }
 
