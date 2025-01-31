@@ -19,17 +19,19 @@ void info_hold(int);
 
 // MARCOS
 #if INFO_LVL<3
-#define INFO()
+#define INFO(...)
 #define BTW(code)
 #endif
 #if INFO_LVL<2
+#define SUCCESS(...)
+#define WARNING(...)
 #define SUCCESS(...)
 #define SEG_BEGIN(name)
 #define SEG_END
 #endif
 #if INFO_LVL<1
-#define HOLD(...)
-#define RELEASE(...)
+#define HOLD
+#define RELEASE
 #define ERROR(...)
 #endif
 #if INFO_LVL<0

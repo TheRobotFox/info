@@ -377,7 +377,10 @@ void info_msg(struct info_Origin origin, const info_char *prefix)
 static void release()
 {
     if(!newlined) FPUTC('\n', out); // TODO conditionally
-    if(msg.str.str) free(msg.str.str);
+    if(msg.str.str){
+        free(msg.str.str);
+        msg.str.str = NULL;
+    }
 
     holding = 0;
 }
