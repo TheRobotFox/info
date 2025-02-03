@@ -158,7 +158,7 @@ static struct List_DrawCall* parse(const info_char *text, const info_char *end)
     if(text>=end) return NULL;
 
     const info_char *next = next_curly(text, end);
-    struct List_DrawCall *list;
+    struct List_DrawCall *list = NULL;
     int mark_error = 0;
     struct info_DrawCall dc = { 0 };
 
@@ -176,7 +176,6 @@ static struct List_DrawCall* parse(const info_char *text, const info_char *end)
         } else if(*next==INFO_STR('{')) {
             const info_char *cb = find_group_end(next, end);
             if(!cb){
-                list = NULL;
                 mark_error = 1;
                 dc = (struct info_DrawCall){.kind = TEXT, .text = {.str = next, .len = end-next}};
             } else {
